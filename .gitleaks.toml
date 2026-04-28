@@ -1,4 +1,4 @@
-title = "Ingestion Engine Public gitleaks config"
+title = "Bytebell-public gitleaks config"
 
 [extend]
 useDefault = true
