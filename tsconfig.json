@@ -16,6 +16,7 @@
     { "path": "packages/redis" },
     { "path": "packages/queue" },
     { "path": "packages/llm" },
-    { "path": "packages/ingest-github" }
+    { "path": "packages/ingest-github" },
+    { "path": "packages/cli" }
   ]
 }
