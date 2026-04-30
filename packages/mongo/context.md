@@ -16,9 +16,12 @@ The package owns:
 - A health probe (`pingMongo`) backed by the active connection
 - An internal `_getDb()` accessor that typed collection helpers in this
   package compose against
-- The **knowledge-document state mutator** — `setKnowledgeState` — which
-  is the only domain CRUD helper today. Called by `@bb/queue` publishers
-  on enqueue.
+- Domain CRUD helpers:
+  - `setKnowledgeState` — the knowledge-document state mutator. Called
+    by `@bb/queue` publishers on enqueue.
+  - `upsertRawFile` — per-file Raw doc writer (compound key
+    `{ knowledgeId, relativePath }`). Called by `@bb/ingest-github`'s
+    worker for every scanned file.
 - A central registry of collection name strings (`Collections` enum)
 
 The package does **not** own:
@@ -38,16 +41,39 @@ function closeMongo(): Promise<void>;
 function pingMongo(): Promise<PingResult>;
 
 function setKnowledgeState(knowledgeId: string, state: KnowledgeState): Promise<void>;
+function upsertRawFile(doc: Omit<RawFileDoc, "updatedAt">): Promise<void>;
 
 interface PingResult {
   ok: boolean;
   latencyMs: number;
+}
+interface FileAnalysis {
+  purpose: string;
+  summary: string;
+  classes: string[];
+  functions: string[];
+  imports: string[];
+  keywords: string[];
+}
+interface RawFileDoc {
+  knowledgeId: string;
+  relativePath: string;
+  content: string;
+  sha: string;
+  sizeBytes: number;
+  language: string;
+  analysis: FileAnalysis;
+  updatedAt: Date;
 }
 ```
 
 (`MongoConfigError`, `MongoConnectError`, `MongoNotConnectedError`,
 `KnowledgeNotFoundError` are thrown by these functions but **defined in
 `@bb/errors`** — import them from there.)
+
+`RawFileDoc` and `FileAnalysis` are package-local for now; they'll
+graduate to `@bb/types` when a second consumer (e.g. `@bb/mcp` retrieval)
+needs to read Raw docs.
 
 `_getDb()` and the `Collections` enum are **internal** — consumed only
 by helpers inside this package. Higher tiers cannot reach a raw `Db`
@@ -90,8 +116,11 @@ No logger, no telemetry, no Neo4j, no Redis. This package boots after
 - Knowledge-document creation, deletion, or full reads
   (`getKnowledgeById`, `createKnowledge`, etc.) — added when the first
   caller arrives
-- `Raw`, `Nodes`, and `Jobs` collection helpers — deferred until ingest
-  packages need them
+- Raw deletion / `deleteRawFile(knowledgeId, relativePath)` —
+  added when `github_pull` lands and needs to clean up files removed in
+  a diff
+- `Nodes` and `Jobs` collection helpers — deferred until callers need
+  them
 - Index creation / migrations
 - Transactions helper
 - Change streams, GridFS

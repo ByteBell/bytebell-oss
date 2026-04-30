@@ -33,6 +33,15 @@ package-level contract; this file documents how the source tree is split.
   underlying cause via the local `describe` helper), `QueueNotConnectedError`
   (publisher or `registerWorker` called before `connectQueue()`; marker
   class with no extra fields).
+- **[llm-errors.ts](llm-errors.ts)** — errors thrown by `@bb/llm`.
+  Today: `LlmConfigError` (missing OpenRouter API key; carries the
+  `bytebell keys set` hint), `LlmError` (HTTP non-2xx, timeout, empty
+  completion; accepts an optional `cause`).
+- **[ingest-errors.ts](ingest-errors.ts)** — errors thrown by
+  `@bb/ingest-*` workers. Today: `GitCloneError` (git binary failed;
+  redacts userinfo in the repo URL via the local `redactUrl` helper),
+  `IngestError` (catch-all worker failure; carries `knowledgeId` and an
+  optional `cause`).
 
 ## Module dependency graph
 
@@ -41,7 +50,9 @@ config-errors.ts → @bb/types (type-only: Config)
 mongo-errors.ts  → (leaf — no imports)
 redis-errors.ts  → (leaf — no imports)
 queue-errors.ts  → (leaf — no imports)
-index.ts         → re-exports all four error modules
+llm-errors.ts    → (leaf — no imports)
+ingest-errors.ts → (leaf — no imports)
+index.ts         → re-exports all six error modules
 ```
 
 No cross-file imports inside the package; no cycles possible.

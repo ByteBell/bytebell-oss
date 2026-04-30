@@ -34,6 +34,27 @@
         "@bb/types": "workspace:*",
       },
     },
+    "packages/ingest-github": {
+      "name": "@bb/ingest-github",
+      "version": "0.0.0",
+      "dependencies": {
+        "@bb/config": "workspace:*",
+        "@bb/errors": "workspace:*",
+        "@bb/llm": "workspace:*",
+        "@bb/mongo": "workspace:*",
+        "@bb/queue": "workspace:*",
+        "@bb/types": "workspace:*",
+      },
+    },
+    "packages/llm": {
+      "name": "@bb/llm",
+      "version": "0.0.0",
+      "dependencies": {
+        "@bb/config": "workspace:*",
+        "@bb/errors": "workspace:*",
+        "@bb/types": "workspace:*",
+      },
+    },
     "packages/logger": {
       "name": "@bb/logger",
       "version": "0.0.0",
@@ -89,6 +110,10 @@
     "@bb/config": ["@bb/config@workspace:packages/config"],
 
     "@bb/errors": ["@bb/errors@workspace:packages/errors"],
+
+    "@bb/ingest-github": ["@bb/ingest-github@workspace:packages/ingest-github"],
+
+    "@bb/llm": ["@bb/llm@workspace:packages/llm"],
 
     "@bb/logger": ["@bb/logger@workspace:packages/logger"],
 

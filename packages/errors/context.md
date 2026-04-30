@@ -29,9 +29,15 @@ Today the catalog covers:
 - **Queue** — `QueueConnectError` (BullMQ Queue construction failed;
   carries `cause`), `QueueNotConnectedError` (publisher or
   `registerWorker` called before `connectQueue()`).
+- **LLM** — `LlmConfigError` (missing OpenRouter API key; carries the
+  `bytebell keys set` hint), `LlmError` (HTTP non-2xx, timeout, empty
+  completion; carries `cause`).
+- **Ingest** — `GitCloneError` (git binary failed; redacts userinfo in
+  the repo URL), `IngestError` (catch-all worker failure; carries
+  `knowledgeId` and `cause`).
 
 New error classes land here as new packages are introduced (Neo4j,
-ingest, llm, license, etc.).
+license, etc.).
 
 ## Public exports
 
@@ -46,6 +52,10 @@ class RedisConnectError        extends Error
 class RedisNotConnectedError   extends Error
 class QueueConnectError        extends Error
 class QueueNotConnectedError   extends Error
+class LlmConfigError           extends Error
+class LlmError                 extends Error
+class GitCloneError            extends Error
+class IngestError              extends Error
 ```
 
 ## Data ownership

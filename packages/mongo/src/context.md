@@ -7,8 +7,9 @@ package-level contract; this file documents how the source tree is split.
 
 - **[index.ts](index.ts)** — public re-exports. The only entry point other
   packages may import. Exposes `connectMongo`, `closeMongo`, `pingMongo`,
-  `setKnowledgeState`, and the `PingResult` type. Anything not re-exported
-  here is internal.
+  `setKnowledgeState`, `upsertRawFile`, and the `PingResult` /
+  `FileAnalysis` / `RawFileDoc` types. Anything not re-exported here is
+  internal.
 - **[client.ts](client.ts)** — module-scoped `MongoClient` singleton plus
   the lifecycle (`connectMongo`, `closeMongo`), the health probe
   (`pingMongo`), and the **internal** `_getDb()` accessor. Reads the URI via
@@ -17,16 +18,23 @@ package-level contract; this file documents how the source tree is split.
   `MongoNotConnectedError`). Also exposes `__resetForTests()` — test seam
   only, never imported by production code.
 - **[collections.ts](collections.ts)** — the `Collections` enum: single
-  source of truth for collection name strings. Today only
-  `Collections.Knowledge = "knowledge"`; `Raw`, `Nodes`, `Jobs` join when
-  their helpers land. **Internal** — not re-exported from `index.ts`;
-  consumed only by helpers in this folder.
-- **[knowledge.ts](knowledge.ts)** — the first domain CRUD helper:
+  source of truth for collection name strings. Today:
+  `Collections.Knowledge = "knowledge"`, `Collections.Raw = "raw"`.
+  `Nodes` and `Jobs` join when their helpers land. **Internal** — not
+  re-exported from `index.ts`; consumed only by helpers in this folder.
+- **[knowledge.ts](knowledge.ts)** — domain CRUD helper:
   `setKnowledgeState(knowledgeId, state)`. Uses `_getDb()` to access
   `Collections.Knowledge`, runs `updateOne({ knowledgeId }, { $set: {
 "status.state": state, updatedAt: <now> } })`, and throws
   `KnowledgeNotFoundError` on `matchedCount === 0`. Called by `@bb/queue`
   publishers on enqueue.
+- **[raw.ts](raw.ts)** — domain CRUD helper:
+  `upsertRawFile(doc)`. Defines the `FileAnalysis` and `RawFileDoc`
+  interfaces (package-local until promotion to `@bb/types`). Uses
+  `_getDb()` to access `Collections.Raw`, runs `updateOne({ knowledgeId,
+relativePath }, { $set: <doc + updatedAt> }, { upsert: true })`. No
+  thrown error on missing match — upsert always succeeds. Called by
+  `@bb/ingest-github`'s worker for every scanned file.
 
 ## Module dependency graph
 
@@ -36,11 +44,13 @@ client.ts      → mongodb, @bb/config (getConfigValue), @bb/types (Config),
 collections.ts → (leaf — no imports)
 knowledge.ts   → client.ts (_getDb), collections.ts (Collections),
                  @bb/types (KnowledgeState), @bb/errors (KnowledgeNotFoundError)
-index.ts       → re-exports the public surface from client.ts + knowledge.ts
+raw.ts         → client.ts (_getDb), collections.ts (Collections)
+index.ts       → re-exports the public surface from client.ts + knowledge.ts +
+                 raw.ts
 ```
 
-No cycles. `collections.ts` is a leaf; `knowledge.ts` is the only file
-that composes `_getDb()` so far.
+No cycles. `collections.ts` is a leaf; `knowledge.ts` and `raw.ts` are
+the two helpers composing `_getDb()` today.
 
 ## Invariants enforced here
 
