@@ -5,6 +5,8 @@ import { buildServerCommand } from "./ServerCommand.ts";
 import { buildIndexCommand } from "./IndexCommand.ts";
 import { buildIngestCommand } from "./IngestCommand.ts";
 import { buildLsCommand } from "./LsCommand.ts";
+import { buildBootCommand } from "./BootCommand.ts";
+import { buildShutdownCommand } from "./ShutdownCommand.ts";
 import { error } from "./output.ts";
 
 const VERSION = "0.0.0";
@@ -13,6 +15,8 @@ async function main(): Promise<void> {
   const program = new Command("bytebell");
   program.version(VERSION).description("Bytebell — local knowledge engine TUI");
   program.addCommand(buildSetCommand());
+  program.addCommand(buildBootCommand());
+  program.addCommand(buildShutdownCommand());
   program.addCommand(buildServerCommand());
   program.addCommand(buildIndexCommand());
   program.addCommand(buildIngestCommand());
