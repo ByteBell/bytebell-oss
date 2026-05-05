@@ -16,9 +16,10 @@ workspace keeps `src/` flat.
   `/sse/messages`) and `closeAllMcpSessions()` (drains both transport
   maps before shutdown). Owns the module-level `mounted` guard.
 - **[server.ts](server.ts)** — `buildMcpServer()` constructs the single
-  `McpServer` instance and invokes the four register functions in order
-  (smart_search, keyword_lookup, retrieve_file, skill resources). Owns
-  the `SERVER_NAME / SERVER_VERSION / INSTRUCTIONS` constants.
+  `McpServer` instance and invokes the five register functions in order
+  (list_knowledge first, then smart_search, keyword_lookup,
+  retrieve_file, skill resources). Owns the `SERVER_NAME /
+SERVER_VERSION / INSTRUCTIONS` constants.
 
 ### Transports
 
@@ -35,6 +36,15 @@ workspace keeps `src/` flat.
 
 ### Tools
 
+- **[listKnowledgeTool.ts](listKnowledgeTool.ts)** — registers
+  `list_knowledge`. Single Cypher over `(:Knowledge)` with an
+  `OPTIONAL MATCH (:HAS_FILE)->(:File)` aggregate; one row per indexed
+  repo carrying `{knowledgeId, repoName, sourceKind, sourceUrl, branch,
+state, fileCount, createdAt, updatedAt}` ordered by
+  `Knowledge.updatedAt` desc. Inline char-budget pager (same shape as
+  `keywordLookupTool.paginate`). This is the session-start tool —
+  registered first in `buildMcpServer()` so it appears at the top of
+  `tools/list`.
 - **[smartSearchTool.ts](smartSearchTool.ts)** — registers
   `smart_search` via the modern `server.registerTool` API. Owns the
   Zod schema, dispatch, parallel-channel orchestration, repo-name
@@ -103,8 +113,8 @@ workspace keeps `src/` flat.
 
 ```
 server.ts                    → @modelcontextprotocol/sdk/server/mcp.js,
-                               smartSearchTool, keywordLookupTool,
-                               retrieveFileTool, resourcesSkills
+                               listKnowledgeTool, smartSearchTool,
+                               keywordLookupTool, retrieveFileTool, resourcesSkills
 
 streamableHttpTransport.ts   → node:crypto, express (types only),
                                @modelcontextprotocol/sdk/{server/mcp,server/streamableHttp,types,shared/transport}.js
@@ -112,6 +122,9 @@ sseTransport.ts              → express (types only),
                                @modelcontextprotocol/sdk/{server/mcp,server/sse,shared/transport}.js
 index.ts                     → express (types only), server.ts,
                                streamableHttpTransport, sseTransport
+
+listKnowledgeTool.ts         → zod, @modelcontextprotocol/sdk/server/mcp.js,
+                               @bb/neo4j (runCypher)
 
 searchExclusions.ts          → (no deps)
 smartSearchChannels.ts       → @bb/neo4j (runCypher), searchExclusions

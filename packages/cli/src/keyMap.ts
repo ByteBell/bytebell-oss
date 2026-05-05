@@ -87,6 +87,11 @@ export const KEY_MAP: Record<string, KeyEntry> = {
     redact: true,
     setter: (s) => setConfigValue(Config.OpenrouterApiKey, s),
   },
+  "openrouter-model": {
+    configKey: Config.OpenrouterModel,
+    redact: false,
+    setter: (s) => setConfigValue(Config.OpenrouterModel, s),
+  },
 };
 
 export function validKeysList(): string[] {

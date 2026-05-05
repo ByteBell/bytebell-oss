@@ -10,10 +10,10 @@ export function mountMcp(app: Application): void {
     return;
   }
   mounted = true;
-  const server = buildMcpServer();
+  const buildServer = (): ReturnType<typeof buildMcpServer> => buildMcpServer();
 
   const streamable = (req: Request, res: Response): void => {
-    handleStreamableHttp(req, res, server).catch((cause: unknown) => {
+    handleStreamableHttp(req, res, buildServer).catch((cause: unknown) => {
       sendError(res, cause);
     });
   };
@@ -22,7 +22,7 @@ export function mountMcp(app: Application): void {
   app.delete("/mcp", streamable);
 
   app.get("/sse", (req: Request, res: Response): void => {
-    handleSseConnect(req, res, server).catch((cause: unknown) => {
+    handleSseConnect(req, res, buildServer).catch((cause: unknown) => {
       sendError(res, cause);
     });
   });

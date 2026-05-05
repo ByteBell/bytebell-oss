@@ -1,0 +1,74 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: bytebell-mongo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: bytebell
+    networks:
+      - bytebell
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "echo 'db.runCommand({ ping: 1 }).ok' | mongosh --quiet localhost:27017/bytebell"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  neo4j:
+    image: neo4j:5
+    container_name: bytebell-neo4j
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7474:7474"
+      - "127.0.0.1:7687:7687"
+    volumes:
+      - neo4j_data:/data
+    environment:
+      NEO4J_AUTH: "neo4j/${NEO4J_PASSWORD:?NEO4J_PASSWORD must be set in infra/docker/.env}"
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+    networks:
+      - bytebell
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: bytebell-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      - bytebell
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+networks:
+  bytebell:
+    name: bytebell
+    driver: bridge
+
+volumes:
+  mongo_data:
+    name: bytebell_mongo_data
+  neo4j_data:
+    name: bytebell_neo4j_data
+  redis_data:
+    name: bytebell_redis_data

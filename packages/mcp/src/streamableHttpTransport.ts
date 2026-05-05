@@ -5,10 +5,15 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
-const transports = new Map<string, StreamableHTTPServerTransport>();
+interface SessionEntry {
+  transport: StreamableHTTPServerTransport;
+  server: McpServer;
+}
 
-export async function handleStreamableHttp(req: Request, res: Response, server: McpServer): Promise<void> {
-  const transport = await resolveTransport(req, server);
+const sessions = new Map<string, SessionEntry>();
+
+export async function handleStreamableHttp(req: Request, res: Response, buildServer: () => McpServer): Promise<void> {
+  const transport = await resolveTransport(req, buildServer);
   if (transport === undefined) {
     res.status(400).json({
       jsonrpc: "2.0",
@@ -21,40 +26,45 @@ export async function handleStreamableHttp(req: Request, res: Response, server: 
 }
 
 export async function closeAllStreamableHttpTransports(): Promise<void> {
-  const all = Array.from(transports.values());
-  transports.clear();
+  const all = Array.from(sessions.values());
+  sessions.clear();
   await Promise.allSettled(
-    all.map(async (transport) => {
-      await transport.close();
+    all.map(async (entry) => {
+      await entry.transport.close();
+      await entry.server.close();
     }),
   );
 }
 
-async function resolveTransport(req: Request, server: McpServer): Promise<StreamableHTTPServerTransport | undefined> {
+async function resolveTransport(
+  req: Request,
+  buildServer: () => McpServer,
+): Promise<StreamableHTTPServerTransport | undefined> {
   const headerValue = req.headers["mcp-session-id"];
   const sessionId = typeof headerValue === "string" ? headerValue : undefined;
 
   if (sessionId !== undefined) {
-    return transports.get(sessionId);
+    return sessions.get(sessionId)?.transport;
   }
   if (req.method === "POST" && isInitializeRequest(req.body)) {
-    return createTransport(server);
+    return createSession(buildServer());
   }
   return undefined;
 }
 
-async function createTransport(server: McpServer): Promise<StreamableHTTPServerTransport> {
+async function createSession(server: McpServer): Promise<StreamableHTTPServerTransport> {
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (newSessionId: string) => {
-      transports.set(newSessionId, transport);
+      sessions.set(newSessionId, { transport, server });
     },
   });
   transport.onclose = (): void => {
     const closingId = transport.sessionId;
     if (typeof closingId === "string") {
-      transports.delete(closingId);
+      sessions.delete(closingId);
     }
+    void server.close().catch(() => undefined);
   };
   // SDK declares Transport.onclose as `?: () => void` but the implementing class types it as
   // `(() => void) | undefined`; the two are incompatible under exactOptionalPropertyTypes.

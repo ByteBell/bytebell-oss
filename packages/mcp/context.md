@@ -12,7 +12,7 @@ packages or from binaries (`@bb/server`, `@bb/cli`).
 Owns the public MCP retrieval surface. Builds a single `McpServer`
 instance from `@modelcontextprotocol/sdk`, mounts both Streamable HTTP
 (`/mcp`) and legacy SSE (`/sse` + `/sse/messages`) transports onto an
-externally-supplied Express application, registers three retrieval
+externally-supplied Express application, registers four retrieval
 tools and a skill-distribution resource channel.
 
 The package owns:
@@ -24,9 +24,11 @@ The package owns:
   existing sessions are looked up by header.
 - Per-session `SSEServerTransport` instances keyed by the SDK-generated
   `sessionId`, exposed via a query param on `/sse/messages`.
-- Three registered tools — `smart_search`, `keyword_lookup`,
-  `retrieve_file` — registered via the modern `server.registerTool(...)`
-  config-object API.
+- Four registered tools — `list_knowledge`, `smart_search`,
+  `keyword_lookup`, `retrieve_file` — registered via the modern
+  `server.registerTool(...)` config-object API. `list_knowledge` is
+  registered first so it sits at the top of `tools/list` output and
+  the LLM gravitates toward calling it before anything else.
 - Two resources — `bytebell://skills/index` (JSON listing of bundled
   skills) and `bytebell://skills/{skillName}/{filename}` (individual
   markdown file content). Backed by the bundled `skills/` directory
@@ -65,11 +67,20 @@ POST   /sse/messages?sessionId=…    SSE — client-to-server messages
 
 ## Tools
 
-| Name             | Inputs                                                                                           | Output shape                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `smart_search`   | `query`, `knowledgeId?`, `path?`, `exclude?`, `page?`, `pageSize?`                               | `{query, channels_used, total_matches, repos_matched[], top_results[], clusters[]}` |
-| `keyword_lookup` | `term`, `match? (default keyword)`, `knowledgeId?`, `keywordLimit?`, `filesPerKeyword?`, `page?` | `{query, match, cross_repo, total_matched, matched[], pagination}`                  |
-| `retrieve_file`  | `operation? (default content)`, `knowledgeId`, op-specific params                                | `{operation, …}` — varies by op                                                     |
+| Name             | Inputs                                                                                           | Output shape                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_knowledge` | `page?`                                                                                          | `{knowledgeBases: [{knowledgeId, repoName, sourceKind, sourceUrl, branch, state, fileCount, createdAt, updatedAt}], totalItems, pagination}` |
+| `smart_search`   | `query`, `knowledgeId?`, `path?`, `exclude?`, `page?`, `pageSize?`                               | `{query, channels_used, total_matches, repos_matched[], top_results[], clusters[]}`                                                          |
+| `keyword_lookup` | `term`, `match? (default keyword)`, `knowledgeId?`, `keywordLimit?`, `filesPerKeyword?`, `page?` | `{query, match, cross_repo, total_matched, matched[], pagination}`                                                                           |
+| `retrieve_file`  | `operation? (default content)`, `knowledgeId`, op-specific params                                | `{operation, …}` — varies by op                                                                                                              |
+
+`list_knowledge` is the session-start tool. One Cypher over
+`(:Knowledge)` with an `OPTIONAL MATCH (:HAS_FILE)->(:File)` aggregate
+returns one row per indexed repo, ordered by `Knowledge.updatedAt` desc.
+Pagination packs rows into pages until a ~5000-token char budget is hit
+(same shape as `keyword_lookup`'s pager). The `state` field flows
+`CREATED → QUEUED → INGESTED → PROCESSING → PROCESSED | FAILED`; the
+LLM should treat any state other than `PROCESSED` as not-yet-queryable.
 
 `smart_search` runs the six channels in parallel via
 `smartSearchChannels.ts` (purpose, paths, keywords, classes, functions,
