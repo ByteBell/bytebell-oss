@@ -9,8 +9,14 @@ const CONSTRAINTS = [
   "CREATE CONSTRAINT module_name IF NOT EXISTS FOR (m:Module) REQUIRE m.name IS UNIQUE",
 ];
 
+const FULLTEXT_INDEXES = [
+  "CREATE FULLTEXT INDEX idx_file_purpose_summary_ft IF NOT EXISTS FOR (f:File) ON EACH [f.purpose, f.summary]",
+  "CREATE FULLTEXT INDEX idx_keyword_name_ft IF NOT EXISTS FOR (kw:Keyword) ON EACH [kw.name]",
+  "CREATE FULLTEXT INDEX idx_symbol_signature_ft IF NOT EXISTS FOR (n:Class|Function) ON EACH [n.signature]",
+];
+
 export async function ensureKnowledgeIndexes(): Promise<void> {
-  for (const cypher of CONSTRAINTS) {
+  for (const cypher of [...CONSTRAINTS, ...FULLTEXT_INDEXES]) {
     try {
       await _runCypher(cypher);
     } catch (cause: unknown) {

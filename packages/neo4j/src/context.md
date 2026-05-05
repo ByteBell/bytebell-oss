@@ -8,10 +8,11 @@ package-level contract; this file documents how the source tree is split.
 - **[index.ts](index.ts)** — public re-exports. The only entry point
   other packages may import. Exposes the lifecycle (`connectNeo4j`,
   `closeNeo4j`, `pingNeo4j`), schema bootstrap
-  (`ensureKnowledgeIndexes`), and typed graph helpers
-  (`upsertKnowledgeNode`, `setKnowledgeStateInGraph`, `upsertFileNode`),
-  plus the `PingResult` and `UpsertFileNodeInput` types. Anything not
-  re-exported here is internal.
+  (`ensureKnowledgeIndexes`), typed graph helpers (`upsertKnowledgeNode`,
+  `setKnowledgeStateInGraph`, `upsertFileNode`), and the public read
+  primitive `runCypher` (a re-export of the internal `_runCypher` for
+  domain-tier consumers). Plus the `PingResult` and `UpsertFileNodeInput`
+  types. Anything not re-exported here is internal.
 - **[client.ts](client.ts)** — module-scoped `Driver` singleton +
   lifecycle (`connectNeo4j`, `closeNeo4j`), the health probe (`pingNeo4j`,
   via `verifyConnectivity()`), the **internal** `_getDriver()` accessor
@@ -20,18 +21,23 @@ package-level contract; this file documents how the source tree is split.
   typed errors from `@bb/errors` (`Neo4jConfigError`, `Neo4jConnectError`,
   `Neo4jNotConnectedError`). Also exposes `__resetForTests()` — test seam
   only, never imported by production code.
-- **[indexes.ts](indexes.ts)** — `ensureKnowledgeIndexes()` runs the
-  fixed list of `CREATE CONSTRAINT … IF NOT EXISTS` statements at boot.
-  Tolerant: catches "already exists" / "EquivalentSchemaRuleAlreadyExists"
-  failures (Neo4j refuses to create a constraint when a plain index
-  already exists on the same label+property), logs the skip to stderr,
-  and continues with the remaining constraints. Operators must drop
-  conflicting plain indexes manually if uniqueness guarantees matter.
+- **[indexes.ts](indexes.ts)** — `ensureKnowledgeIndexes()` runs two
+  schema lists at boot: `CONSTRAINTS` (uniqueness) and `FULLTEXT_INDEXES`
+  (the three `idx_*_ft` indexes consumed by `@bb/mcp` retrieval). Both
+  are `IF NOT EXISTS`. Tolerant: catches "already exists" /
+  "EquivalentSchemaRuleAlreadyExists" failures (Neo4j refuses to create
+  a constraint when a plain index already exists on the same
+  label+property), logs the skip to stderr, and continues with the
+  remaining statements. Operators must drop conflicting plain indexes
+  manually if uniqueness guarantees matter.
 - **[knowledge.ts](knowledge.ts)** — `upsertKnowledgeNode(doc)` MERGEs
   a `:Knowledge` node by `knowledgeId`, setting `sourceKind / sourceUrl /
-branch / state / createdAt / updatedAt` (createdAt only on insert).
-  `setKnowledgeStateInGraph(knowledgeId, state)` is a state-only update
-  used by the worker on each transition.
+branch / repoName / state / createdAt / updatedAt` (createdAt only on
+  insert). `repoName` is derived once via `deriveRepoName(source)` —
+  `owner/repo` (stripped of `.git`) for github sources, `path.basename`
+  for local sources, with the original URL as a fallback when parsing
+  yields too few segments. `setKnowledgeStateInGraph(knowledgeId, state)`
+  is a state-only update used by the worker on each transition.
 - **[files.ts](files.ts)** — `upsertFileNode(input)` is the per-file
   write. Performs five sequential operations:
   1. MERGE `:File {knowledgeId, relativePath}`, SET its scalar props,
@@ -53,7 +59,7 @@ branch / state / createdAt / updatedAt` (createdAt only on insert).
 client.ts     → neo4j-driver, @bb/config (getConfigValue), @bb/types (Config),
                 @bb/errors (Neo4j* error classes)
 indexes.ts    → client.ts (_runCypher)
-knowledge.ts  → client.ts (_runCypher), @bb/types (KnowledgeDoc, KnowledgeState)
+knowledge.ts  → client.ts (_runCypher), @bb/types (KnowledgeDoc, KnowledgeSource, KnowledgeState), node:path
 files.ts     → client.ts (_runCypher), @bb/mongo (FileAnalysis type)
 index.ts      → re-exports the public surface from client.ts + indexes.ts
                 + knowledge.ts + files.ts

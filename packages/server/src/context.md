@@ -15,7 +15,10 @@ package-level contract; this file documents how the source tree is split.
   binds to `127.0.0.1`; writes `~/.bytebell/pid`. On any error during
   boot: prints to stderr and exits 1.
 - **[routes.ts](routes.ts)** — single `registerRoutes(app)` that mounts
-  every `Router` on the express app. Add a new line per route.
+  every `Router` on the express app, then calls `mountMcp(app)` from
+  `@bb/mcp` to register the MCP transport routes (Streamable HTTP at
+  `/mcp` plus legacy SSE at `/sse` + `/sse/messages`). Add a new line
+  per route.
 - **[healthRoute.ts](healthRoute.ts)** — `GET /health`. Awaits
   `pingMongo()` + `pingRedis()` + `pingNeo4j()` in parallel; 200 if all
   three ok, 503 otherwise. Body includes all three ping results for
@@ -43,10 +46,13 @@ package-level contract; this file documents how the source tree is split.
   muddy the tier graph).
 - **[shutdown.ts](shutdown.ts)** — `installShutdownHandlers()` registers
   SIGTERM and SIGINT handlers. The handler awaits
-  `closeQueue → closeRedis → closeNeo4j → closeMongo` then unlinks
-  `~/.bytebell/pid`. 30-second timeout (via `setTimeout.unref()` so it
-  doesn't keep the process alive); on timeout exits 1 (PID file may
-  remain — that's the signal a crash happened).
+  `closeAllMcpSessions → closeQueue → closeRedis → closeNeo4j →
+closeMongo` then unlinks `~/.bytebell/pid`. MCP sessions drain first
+  so in-flight Streamable HTTP / SSE transports release before any
+  worker- or driver-level connection closes. 30-second timeout (via
+  `setTimeout.unref()` so it doesn't keep the process alive); on
+  timeout exits 1 (PID file may remain — that's the signal a crash
+  happened).
 
 ## Module dependency graph
 
@@ -65,10 +71,11 @@ localIndexRoute.ts    → express, node:fs/promises, node:path,
                         @bb/queue (enqueueLocalIngest), copyRepo.ts
 reposRoute.ts         → express, @bb/mongo (listKnowledge)
 copyRepo.ts           → node:fs/promises, node:path
-routes.ts             → express, all four route builders
+routes.ts             → express, all four route builders, @bb/mcp (mountMcp)
 shutdown.ts           → node:fs/promises, node:path, @bb/mongo (closeMongo),
                         @bb/redis (closeRedis), @bb/neo4j (closeNeo4j),
-                        @bb/queue (closeQueue), @bb/config (getBytebellHome)
+                        @bb/queue (closeQueue), @bb/mcp (closeAllMcpSessions),
+                        @bb/config (getBytebellHome)
 index.ts              → express, node:fs/promises, node:path, @bb/types (Config),
                         @bb/config (getBytebellHome, getConfigValue, HINTS),
                         @bb/mongo (connectMongo), @bb/redis (connectRedis),

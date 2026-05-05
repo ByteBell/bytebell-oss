@@ -19,6 +19,7 @@
     { "path": "packages/ingest-github" },
     { "path": "packages/cli" },
     { "path": "packages/server" },
-    { "path": "packages/neo4j" }
+    { "path": "packages/neo4j" },
+    { "path": "packages/mcp" }
   ]
 }

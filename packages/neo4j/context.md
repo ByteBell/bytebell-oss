@@ -27,8 +27,11 @@ The package owns:
   one-shot session and returns rows as plain objects
 - Schema bootstrap (`ensureKnowledgeIndexes`) — uniqueness constraints
   for `:Knowledge / :File / :Keyword / :Class / :Function / :Module`,
-  tolerant of pre-existing indexes (Neo4j refuses constraints when a
-  matching plain index already exists; we log + skip)
+  plus three fulltext indexes that power `@bb/mcp` retrieval
+  (`idx_file_purpose_summary_ft`, `idx_keyword_name_ft`,
+  `idx_symbol_signature_ft`). Tolerant of pre-existing indexes (Neo4j
+  refuses constraints when a matching plain index already exists; we
+  log + skip)
 - Knowledge-node CRUD (`upsertKnowledgeNode`, `setKnowledgeStateInGraph`)
 - File-node CRUD (`upsertFileNode`) — composes the per-file relationships
   (`:HAS_KEYWORD / :HAS_CLASS / :HAS_FUNCTION / :HAS_IMPORT`), clearing
@@ -54,6 +57,8 @@ function upsertKnowledgeNode(doc: KnowledgeDoc): Promise<void>;
 function setKnowledgeStateInGraph(knowledgeId: string, state: KnowledgeState): Promise<void>;
 function upsertFileNode(input: UpsertFileNodeInput): Promise<void>;
 
+function runCypher<T = unknown>(query: string, params?: Record<string, unknown>): Promise<T[]>;
+
 interface PingResult {
   ok: boolean;
   latencyMs: number;
@@ -68,14 +73,20 @@ interface UpsertFileNodeInput {
 }
 ```
 
-`_getDriver`, `_runCypher`, `__resetForTests` are **internal** —
-consumed only inside the package. Higher tiers cannot reach a raw
-`Driver` handle today.
+`_getDriver` and `__resetForTests` are **internal** — consumed only
+inside the package. Higher tiers cannot reach a raw `Driver` handle.
+
+`runCypher` is the **only** public read primitive — re-exported from
+`_runCypher` so domain-tier consumers (`@bb/mcp` retrieval) can run
+arbitrary read queries without each one being typed at the infra
+layer. Writes still go through the dedicated `upsert*` helpers; the
+`@bb/neo4j` package intentionally does not expose a raw `Driver` or
+session.
 
 ## Graph schema (v1)
 
 ```
-(:Knowledge {knowledgeId, sourceKind, sourceUrl, branch, state, createdAt, updatedAt})
+(:Knowledge {knowledgeId, sourceKind, sourceUrl, branch, repoName, state, createdAt, updatedAt})
   -[:HAS_FILE]->
 (:File {knowledgeId, relativePath, language, sha, sizeBytes, purpose, summary, updatedAt})
   -[:HAS_KEYWORD]->  (:Keyword  {name})         // global, lowercase, MERGE-deduped
@@ -84,11 +95,23 @@ consumed only inside the package. Higher tiers cannot reach a raw
   -[:HAS_IMPORT]->   (:Module   {name})         // global, MERGE-deduped
 ```
 
+`Knowledge.repoName` is derived once at upsert time from the source —
+`owner/repo` (with `.git` stripped) for github sources, basename of the
+absolute path for local sources. It is a display label only; identity
+remains `knowledgeId`.
+
 Constraints (uniqueness, idempotent via `IF NOT EXISTS`):
 
 - `Knowledge(knowledgeId)`
 - `File(knowledgeId, relativePath)`
 - `Keyword(name)`, `Class(signature)`, `Function(signature)`, `Module(name)`
+
+Fulltext indexes (idempotent via `IF NOT EXISTS`, consumed by `@bb/mcp`
+search/lookup tools — never read inside this package):
+
+- `idx_file_purpose_summary_ft` — `(File.purpose, File.summary)`
+- `idx_keyword_name_ft` — `(Keyword.name)`
+- `idx_symbol_signature_ft` — `(Class|Function).signature`
 
 Entity nodes are global (shared across all knowledge entries) so
 cross-repo retrieval — "which files mention `auth` keyword across all

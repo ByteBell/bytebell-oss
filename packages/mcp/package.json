@@ -1,5 +1,5 @@
 {
-  "name": "@bb/server",
+  "name": "@bb/mcp",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,20 +8,12 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "bin": {
-    "bytebell-server": "./src/index.ts"
-  },
   "dependencies": {
     "@bb/config": "workspace:*",
-    "@bb/errors": "workspace:*",
-    "@bb/ingest-github": "workspace:*",
-    "@bb/mcp": "workspace:*",
-    "@bb/mongo": "workspace:*",
     "@bb/neo4j": "workspace:*",
-    "@bb/queue": "workspace:*",
-    "@bb/redis": "workspace:*",
     "@bb/types": "workspace:*",
-    "express": "^5.2.1"
+    "@modelcontextprotocol/sdk": "^1.23.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.6"

@@ -4,6 +4,7 @@ import { closeMongo } from "@bb/mongo";
 import { closeRedis } from "@bb/redis";
 import { closeNeo4j } from "@bb/neo4j";
 import { closeQueue } from "@bb/queue";
+import { closeAllMcpSessions } from "@bb/mcp";
 import { getBytebellHome } from "@bb/config";
 
 const SHUTDOWN_TIMEOUT_MS = 30_000;
@@ -25,6 +26,7 @@ async function shutdown(signal: string): Promise<void> {
   timer.unref();
 
   try {
+    await closeAllMcpSessions();
     await closeQueue();
     await closeRedis();
     await closeNeo4j();

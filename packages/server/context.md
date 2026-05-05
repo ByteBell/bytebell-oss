@@ -23,15 +23,20 @@ The package owns:
   `~/.bytebell/pid`.
 - HTTP routes: `GET /health` (pings Mongo + Redis + Neo4j),
   `POST /api/v1/github/index`, `POST /api/v1/local/index`,
-  `GET /api/v1/repos`.
+  `GET /api/v1/repos`, plus the MCP routes (`POST|GET|DELETE /mcp`,
+  `GET /sse`, `POST /sse/messages`) registered by `@bb/mcp`'s
+  `mountMcp(app)` after the JSON routes.
 - Knowledge-doc creation in **both** Mongo and Neo4j on each ingest
   request — `upsertKnowledge` + `upsertKnowledgeNode` run before the
   publisher transitions state to `QUEUED`.
 - Filtered recursive copy for local ingest (`copyRepo.ts`) — files end
   up at `~/.bytebell/repos/<knowledgeId>/` regardless of source so MCP
   retrieval can read them later.
-- Graceful shutdown — SIGTERM/SIGINT → close queue → close redis →
-  close neo4j → close mongo → unlink `~/.bytebell/pid` → exit.
+- Graceful shutdown — SIGTERM/SIGINT → drain MCP sessions
+  (`closeAllMcpSessions`) → close queue → close redis → close neo4j →
+  close mongo → unlink `~/.bytebell/pid` → exit. MCP sessions drain
+  first so in-flight Streamable HTTP / SSE transports release before
+  the BullMQ worker shuts down its Redis connection.
 
 The package does **not** own:
 
@@ -70,6 +75,10 @@ POST /api/v1/local/index      body: { sourcePath: <abs> }
                               → 422 sourcePath must be absolute
 
 GET  /api/v1/repos            → 200 { repos: [...] }   (sorted updatedAt desc)
+
+POST|GET|DELETE /mcp                       Streamable HTTP — owned by @bb/mcp
+GET  /sse                                  legacy SSE stream — owned by @bb/mcp
+POST /sse/messages?sessionId=…             legacy SSE messages — owned by @bb/mcp
 ```
 
 ## Data ownership

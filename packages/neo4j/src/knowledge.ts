@@ -1,4 +1,5 @@
-import type { KnowledgeDoc, KnowledgeState } from "@bb/types";
+import path from "node:path";
+import type { KnowledgeDoc, KnowledgeSource, KnowledgeState } from "@bb/types";
 import { _runCypher } from "./client.ts";
 
 const UPSERT_KNOWLEDGE = `
@@ -7,6 +8,7 @@ ON CREATE SET k.createdAt = $createdAt
 SET k.sourceKind = $sourceKind,
     k.sourceUrl = $sourceUrl,
     k.branch = $branch,
+    k.repoName = $repoName,
     k.state = $state,
     k.updatedAt = $updatedAt
 `;
@@ -25,6 +27,7 @@ export async function upsertKnowledgeNode(doc: KnowledgeDoc): Promise<void> {
     sourceKind,
     sourceUrl,
     branch,
+    repoName: deriveRepoName(doc.source),
     state: doc.status.state,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
@@ -37,4 +40,30 @@ export async function setKnowledgeStateInGraph(knowledgeId: string, state: Knowl
     state,
     updatedAt: new Date().toISOString(),
   });
+}
+
+function deriveRepoName(source: KnowledgeSource): string {
+  if (source.kind === "local") {
+    return path.basename(source.sourcePath);
+  }
+  return repoNameFromGithubUrl(source.repoUrl);
+}
+
+function repoNameFromGithubUrl(repoUrl: string): string {
+  let pathname: string;
+  try {
+    pathname = new URL(repoUrl).pathname;
+  } catch {
+    pathname = repoUrl;
+  }
+  const segments = pathname
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+  const repo = segments.at(-1);
+  const owner = segments.at(-2);
+  if (owner === undefined || repo === undefined) {
+    return repoUrl;
+  }
+  return `${owner}/${repo.replace(/\.git$/u, "")}`;
 }
