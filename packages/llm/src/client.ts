@@ -11,6 +11,17 @@ export interface AskLlmOptions {
   systemPrompt?: string;
 }
 
+export interface AskLlmUsage {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface AskLlmResult {
+  content: string;
+  usage: AskLlmUsage;
+}
+
 interface OpenRouterMessage {
   role: "system" | "user";
   content: string;
@@ -22,10 +33,15 @@ interface OpenRouterRequest {
 }
 
 interface OpenRouterResponse {
+  model?: string;
   choices?: Array<{ message?: { content?: string } }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+  };
 }
 
-export async function askLLM(prompt: string, opts: AskLlmOptions = {}): Promise<string> {
+export async function askLLM(prompt: string, opts: AskLlmOptions = {}): Promise<AskLlmResult> {
   const apiKey = getConfigValue(Config.OpenrouterApiKey);
   if (apiKey.length === 0) {
     throw new LlmConfigError("bytebell keys set");
@@ -73,5 +89,12 @@ export async function askLLM(prompt: string, opts: AskLlmOptions = {}): Promise<
   if (typeof content !== "string" || content.length === 0) {
     throw new LlmError("OpenRouter returned empty completion");
   }
-  return content;
+  return {
+    content,
+    usage: {
+      model: typeof json.model === "string" && json.model.length > 0 ? json.model : model,
+      inputTokens: typeof json.usage?.prompt_tokens === "number" ? json.usage.prompt_tokens : 0,
+      outputTokens: typeof json.usage?.completion_tokens === "number" ? json.usage.completion_tokens : 0,
+    },
+  };
 }

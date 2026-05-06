@@ -2,6 +2,7 @@ import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
 
 const REQUEST_TIMEOUT_MS = 5_000;
+const LONG_REQUEST_TIMEOUT_MS = 30_000;
 
 export function baseUrl(): string {
   const port = getConfigValue(Config.ServerPort);
@@ -43,6 +44,20 @@ export async function getJson<T>(routePath: string): Promise<T> {
     res = await fetch(url, {
       method: "GET",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (cause: unknown) {
+    throw new HttpClientError(`request failed: ${cause instanceof Error ? cause.message : String(cause)}`);
+  }
+  return parseResponse<T>(res);
+}
+
+export async function deleteJson<T>(routePath: string): Promise<T> {
+  const url = `${baseUrl()}${routePath}`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "DELETE",
+      signal: AbortSignal.timeout(LONG_REQUEST_TIMEOUT_MS),
     });
   } catch (cause: unknown) {
     throw new HttpClientError(`request failed: ${cause instanceof Error ? cause.message : String(cause)}`);

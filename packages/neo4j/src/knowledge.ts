@@ -18,6 +18,16 @@ MATCH (k:Knowledge {knowledgeId: $knowledgeId})
 SET k.state = $state, k.updatedAt = $updatedAt
 `;
 
+const DELETE_FILES_BY_KNOWLEDGE = `
+MATCH (f:File {knowledgeId: $knowledgeId})
+DETACH DELETE f
+`;
+
+const DELETE_KNOWLEDGE_NODE = `
+MATCH (k:Knowledge {knowledgeId: $knowledgeId})
+DETACH DELETE k
+`;
+
 export async function upsertKnowledgeNode(doc: KnowledgeDoc): Promise<void> {
   const sourceKind = doc.source.kind;
   const sourceUrl = doc.source.kind === "github" ? doc.source.repoUrl : doc.source.sourcePath;
@@ -40,6 +50,11 @@ export async function setKnowledgeStateInGraph(knowledgeId: string, state: Knowl
     state,
     updatedAt: new Date().toISOString(),
   });
+}
+
+export async function deleteKnowledgeGraph(knowledgeId: string): Promise<void> {
+  await _runCypher(DELETE_FILES_BY_KNOWLEDGE, { knowledgeId });
+  await _runCypher(DELETE_KNOWLEDGE_NODE, { knowledgeId });
 }
 
 function deriveRepoName(source: KnowledgeSource): string {

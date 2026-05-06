@@ -7,3 +7,6 @@ export { enqueueLocalIngest } from "./local-ingest.ts";
 
 export { registerWorker } from "./workers.ts";
 export type { JobHandler, WorkerRegistrationOptions } from "./workers.ts";
+
+export { removeKnowledgeJobs } from "./cancel.ts";
+export type { RemoveKnowledgeJobsResult } from "./cancel.ts";

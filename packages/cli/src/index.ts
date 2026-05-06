@@ -7,6 +7,8 @@ import { buildIngestCommand } from "./IngestCommand.ts";
 import { buildLsCommand } from "./LsCommand.ts";
 import { buildBootCommand } from "./BootCommand.ts";
 import { buildShutdownCommand } from "./ShutdownCommand.ts";
+import { buildDeleteCommand } from "./DeleteCommand.ts";
+import { buildStatsCommand } from "./StatsCommand.ts";
 import { error } from "./output.ts";
 
 const VERSION = "0.0.0";
@@ -21,6 +23,8 @@ async function main(): Promise<void> {
   program.addCommand(buildIndexCommand());
   program.addCommand(buildIngestCommand());
   program.addCommand(buildLsCommand());
+  program.addCommand(buildDeleteCommand());
+  program.addCommand(buildStatsCommand());
   await program.parseAsync(process.argv);
 }
 

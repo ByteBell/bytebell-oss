@@ -76,6 +76,22 @@ You can also ingest a local directory:
 bytebell ingest /path/to/source-tree
 ```
 
+## Inspect token & cost stats
+
+```bash
+bytebell stats
+```
+
+Shows totals (input tokens, output tokens, estimated USD cost), a per-repo breakdown, and per-commit rows including processing time and files analysed. Cost is computed against live OpenRouter pricing; entries whose model has no published pricing show as `unknown`.
+
+## Delete an indexed entry
+
+```bash
+bytebell delete
+```
+
+Lists every indexed knowledge entry as an arrow-keyable picker. Selecting one and confirming `y` cancels any pending BullMQ jobs for that knowledge, removes the Knowledge subgraph from Neo4j (`DETACH DELETE`), and removes the Mongo `knowledge`, `raw`, and `processing_stats` rows tagged with that id. Press `Esc` (or `n` at the confirm step) to cancel.
+
 ## Connect an MCP client
 
 The MCP endpoint is at `http://127.0.0.1:8080/mcp` (Streamable HTTP). For Claude Code:

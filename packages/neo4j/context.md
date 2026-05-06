@@ -32,7 +32,13 @@ The package owns:
   `idx_symbol_signature_ft`). Tolerant of pre-existing indexes (Neo4j
   refuses constraints when a matching plain index already exists; we
   log + skip)
-- Knowledge-node CRUD (`upsertKnowledgeNode`, `setKnowledgeStateInGraph`)
+- Knowledge-node CRUD (`upsertKnowledgeNode`, `setKnowledgeStateInGraph`,
+  `deleteKnowledgeGraph`). `deleteKnowledgeGraph` runs two
+  `DETACH DELETE` cypher statements: one to remove every `:File` for
+  that `knowledgeId` (which transitively detaches keyword / class /
+  function / import edges), and one to remove the `:Knowledge` node
+  itself. Called by the server's `DELETE /api/v1/repos/:knowledgeId`
+  route.
 - File-node CRUD (`upsertFileNode`) — composes the per-file relationships
   (`:HAS_KEYWORD / :HAS_CLASS / :HAS_FUNCTION / :HAS_IMPORT`), clearing
   stale relationships before re-attaching for re-runs
@@ -55,6 +61,7 @@ function ensureKnowledgeIndexes(): Promise<void>;
 
 function upsertKnowledgeNode(doc: KnowledgeDoc): Promise<void>;
 function setKnowledgeStateInGraph(knowledgeId: string, state: KnowledgeState): Promise<void>;
+function deleteKnowledgeGraph(knowledgeId: string): Promise<void>;
 function upsertFileNode(input: UpsertFileNodeInput): Promise<void>;
 
 function runCypher<T = unknown>(query: string, params?: Record<string, unknown>): Promise<T[]>;
@@ -164,7 +171,8 @@ Neo4jPassword`). Repo-wide ESLint rule blocks `process.env`.
 - Multi-database support (we use the default `neo4j` db)
 - Pub/sub / change-data-capture
 - Pruning of orphan `:Keyword / :Class / :Function / :Module` nodes
-  when files are deleted (future cleanup pass)
+  when files are deleted (future cleanup pass — `deleteKnowledgeGraph`
+  detaches edges but leaves the global entity nodes for cross-repo dedupe)
 
 ## How to extend
 

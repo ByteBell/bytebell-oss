@@ -1,5 +1,5 @@
 import path from "node:path";
-import { askLLM } from "@bb/llm";
+import { askLLM, type AskLlmUsage } from "@bb/llm";
 import type { FileAnalysis } from "@bb/mongo";
 
 const MAX_CONTENT_CHARS = 60_000;
@@ -52,6 +52,7 @@ const EXTENSION_LANGUAGE: Record<string, string> = {
 export interface AnalyzedFile {
   language: string;
   analysis: FileAnalysis;
+  usage: AskLlmUsage | null;
 }
 
 export async function analyzeFile(relativePath: string, content: string): Promise<AnalyzedFile> {
@@ -60,15 +61,18 @@ export async function analyzeFile(relativePath: string, content: string): Promis
   const prompt = buildPrompt(relativePath, truncated);
 
   let raw: string;
+  let usage: AskLlmUsage;
   try {
-    raw = await askLLM(prompt);
+    const result = await askLLM(prompt);
+    raw = result.content;
+    usage = result.usage;
   } catch {
-    return { language, analysis: emptyAnalysis() };
+    return { language, analysis: emptyAnalysis(), usage: null };
   }
 
   const parsed = tryParse(raw);
   if (parsed === null) {
-    return { language, analysis: emptyAnalysis() };
+    return { language, analysis: emptyAnalysis(), usage };
   }
 
   const parsedLang = parsed["language"];
@@ -84,6 +88,7 @@ export async function analyzeFile(relativePath: string, content: string): Promis
       imports: stringArray(parsed["imports"]),
       keywords: stringArray(parsed["keywords"]),
     },
+    usage,
   };
 }
 

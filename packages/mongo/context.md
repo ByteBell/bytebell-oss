@@ -19,10 +19,25 @@ The package owns:
 - Domain CRUD helpers:
   - `setKnowledgeState` — the knowledge-document state mutator. Called
     by `@bb/queue` publishers on enqueue.
+  - `upsertKnowledge` / `listKnowledge` — knowledge-doc upsert and list
+    (with file count joined from `raw`). Used by the github / local
+    index routes and by `@bb/cli`'s `ls` and `delete` flows.
+  - `deleteKnowledge` — hard delete: removes the `knowledge` doc, every
+    `raw` row tagged with that `knowledgeId`, and every
+    `processing_stats` commit row tagged with that `knowledgeId`.
+    Called by the server's `DELETE /api/v1/repos/:knowledgeId` route.
   - `upsertRawFile` — per-file Raw doc writer (compound key
     `{ knowledgeId, relativePath }`). Called by `@bb/ingest-github`'s
     worker for every scanned file.
-- A central registry of collection name strings (`Collections` enum)
+  - `recordProcessingStats` — upsert one `processing_stats` row keyed
+    on `{ knowledgeId, commitHash }`. Called by `@bb/ingest-github`'s
+    worker once per ingest run with the per-model token totals,
+    estimated cost, and processing time.
+  - `aggregateStats` — read every `knowledge` + `processing_stats` doc
+    and assemble the kube-shaped `StatsResponse` (totals, repos,
+    commitStats). Called by the server's `GET /api/v1/stats` route.
+- A central registry of collection name strings (`Collections` enum):
+  `knowledge`, `raw`, `processing_stats`.
 
 The package does **not** own:
 

@@ -13,8 +13,16 @@ Never by `@bb/cli`.
 Single, minimal OpenRouter-backed LLM call surface for v0:
 
 - `askLLM(prompt, opts?)` — POST to OpenRouter's chat-completions endpoint
-  using `Config.OpenrouterApiKey` + `Config.OpenrouterModel`, return the
-  model's text content
+  using `Config.OpenrouterApiKey` + `Config.OpenrouterModel`, return
+  `{ content, usage: { model, inputTokens, outputTokens } }` from the
+  response. Tokens come straight from OpenRouter's `usage.prompt_tokens`
+  / `usage.completion_tokens`; `model` is the actual model the gateway
+  routed to.
+- `estimateCostUsd(model, inputTokens, outputTokens)` and
+  `estimateCostFromBreakdown(modelTokens)` — async cost helpers backed
+  by a one-shot fetch of OpenRouter's `/api/v1/models` (cached in module
+  scope for the process lifetime). Returns `-1` when the model has no
+  published pricing.
 - AbortController-based timeout (default 90s, matches the kube-package
   reference `askLLM` shape)
 - Typed errors via `@bb/errors`: `LlmConfigError` (missing key) and
@@ -23,12 +31,18 @@ Single, minimal OpenRouter-backed LLM call surface for v0:
 ## Public exports
 
 ```ts
-function askLLM(prompt: string, opts?: AskLlmOptions): Promise<string>;
+function askLLM(prompt: string, opts?: AskLlmOptions): Promise<AskLlmResult>;
+function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): Promise<number>;
+function estimateCostFromBreakdown(modelTokens: ModelTokenBreakdown): Promise<number>;
 
 interface AskLlmOptions {
   model?: string; // overrides Config.OpenrouterModel
   timeoutMs?: number; // default 90_000
   systemPrompt?: string; // optional system role message
+}
+interface AskLlmResult {
+  content: string;
+  usage: { model: string; inputTokens: number; outputTokens: number };
 }
 ```
 
@@ -70,7 +84,6 @@ cost ledger described in [docs/arch.md:137](../../docs/arch.md#L137) is
 - Model escalation (DEFAULT → SMARTER → SMARTEST)
 - A `askJsonLLM<T>(prompt, schema)` JSON-mode wrapper — caller does
   `JSON.parse` with a try/catch fallback today
-- Token-count tracking
 - Per-call prompt logging
 - Provider abstraction — OpenRouter is the only backend
 

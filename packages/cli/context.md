@@ -21,7 +21,7 @@ mode, every invocation is interactive in spirit, with subcommands for
 indexing, configuration, server lifecycle, and inspection.
 
 **v0 surface:** `set`, `boot`, `shutdown`, `server start`, `index`,
-`ingest`, `ls`.
+`ingest`, `ls`, `delete`, `stats`.
 
 - `bytebell set <key> <value>` — headless write to
   `~/.bytebell/config.json` via `@bb/config.setConfigValue`. Type
@@ -52,6 +52,15 @@ infra/docker/docker-compose.yml up -d`, polls
 - `bytebell index <git-url>` / `bytebell ingest [path]` / `bytebell ls`
   — talk HTTP to a running server (lazy-spawn via
   `serverSpawn.ensureServerRunning` when the daemon is down).
+- `bytebell delete` — list indexed knowledge in an Ink arrow-key picker
+  (`DeleteSelector.tsx`, plain `useInput` — no extra dep), and on
+  confirm `DELETE /api/v1/repos/:id` against the running server. The
+  server cancels any pending BullMQ jobs, then `DETACH DELETE`s the
+  Neo4j subgraph and removes the Mongo `knowledge` / `raw` /
+  `processing_stats` rows for that id.
+- `bytebell stats` — `GET /api/v1/stats` and render TOTALS / REPOS /
+  COMMITS tables. Cost is per-model OpenRouter pricing computed
+  server-side; rows with unknown pricing render as `unknown`.
 - `bytebell --help` / `--version` — commander defaults.
 
 The package does **not** own:
@@ -145,9 +154,10 @@ will touch when implemented. Only the **bolded** entries ship in v0.
 | **`bytebell index <git-url>`**                   | **POST `/api/v1/github/index` to local server.**                                                                     | **Shipped**                                 |
 | **`bytebell ingest [path]`**                     | **POST `/api/v1/local/index` for a directory tree.**                                                                 | **Shipped**                                 |
 | **`bytebell ls`**                                | **Render `/api/v1/repos` as a table.**                                                                               | **Shipped**                                 |
+| **`bytebell delete`**                            | **Ink picker over `/api/v1/repos`, then DELETE `/api/v1/repos/:id` (Mongo + Neo4j + jobs).**                         | **Shipped**                                 |
+| **`bytebell stats`**                             | **Render `/api/v1/stats` (totals + per-repo + per-commit token / cost rows).**                                       | **Shipped**                                 |
 | `bytebell`                                       | Ink dashboard with Repos / Server / Activity / Cost panes ([docs/arch.md:172-184](../../docs/arch.md#L172-L184))     | After `@bb/server` HTTP API + activity feed |
 | `bytebell` (first-run auto-launch of setup form) | If `isConfigComplete()` returns false, redirect to `bytebell set` form ([docs/arch.md:170](../../docs/arch.md#L170)) | After dashboard lands                       |
-| `bytebell clean <id-or-name>`                    | Confirm prompt → DELETE via server admin route                                                                       | After `@bb/server` clean route              |
 | `bytebell models set <model-id>`                 | Validate model via OpenRouter API + write `openrouter_model`                                                         | After OpenRouter helper                     |
 | `bytebell models ls`                             | Curated 5-10 models, on-the-fly OpenRouter pricing                                                                   | Same                                        |
 | `bytebell keys set`                              | Interactive masked prompt → `keytar` keychain → write key                                                            | After `keytar` integration                  |

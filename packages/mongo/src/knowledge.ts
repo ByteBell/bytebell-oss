@@ -39,6 +39,27 @@ export async function upsertKnowledge(doc: Omit<KnowledgeDoc, "updatedAt"> & { u
     );
 }
 
+export interface DeleteKnowledgeResult {
+  knowledgeDeleted: number;
+  rawDeleted: number;
+  statsDeleted: number;
+}
+
+export async function deleteKnowledge(knowledgeId: string): Promise<DeleteKnowledgeResult> {
+  const db = _getDb();
+  const knowledgeRes = await db.collection(Collections.Knowledge).deleteOne({ knowledgeId });
+  if (knowledgeRes.deletedCount === 0) {
+    throw new KnowledgeNotFoundError(knowledgeId);
+  }
+  const rawRes = await db.collection(Collections.Raw).deleteMany({ knowledgeId });
+  const statsRes = await db.collection(Collections.ProcessingStats).deleteMany({ knowledgeId });
+  return {
+    knowledgeDeleted: knowledgeRes.deletedCount ?? 0,
+    rawDeleted: rawRes.deletedCount ?? 0,
+    statsDeleted: statsRes.deletedCount ?? 0,
+  };
+}
+
 export async function listKnowledge(opts: { limit?: number } = {}): Promise<KnowledgeListEntry[]> {
   const db = _getDb();
   const limit = opts.limit ?? DEFAULT_LIST_LIMIT;
