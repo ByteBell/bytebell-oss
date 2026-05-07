@@ -36,6 +36,16 @@ function parseLogLevel(raw: string): LogLevel {
   return raw as LogLevel;
 }
 
+function parseBoolean(raw: string, key: string): boolean {
+  if (raw === "true") {
+    return true;
+  }
+  if (raw === "false") {
+    return false;
+  }
+  throw new Error(`Invalid value for "${key}": expected "true" or "false", got "${raw}"`);
+}
+
 export const KEY_MAP: Record<string, KeyEntry> = {
   mongo: {
     configKey: Config.MongoUri,
@@ -111,6 +121,11 @@ export const KEY_MAP: Record<string, KeyEntry> = {
     configKey: Config.OpenrouterFallbackModel4,
     redact: false,
     setter: (s) => setConfigValue(Config.OpenrouterFallbackModel4, s),
+  },
+  llm_cache_enabled: {
+    configKey: Config.LlmCacheEnabled,
+    redact: false,
+    setter: (s) => setConfigValue(Config.LlmCacheEnabled, parseBoolean(s, "llm_cache_enabled")),
   },
 };
 

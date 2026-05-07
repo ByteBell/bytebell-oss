@@ -14,4 +14,5 @@ export enum Config {
   ConcurrencyGithub = "concurrency.github",
   LogLevel = "log_level",
   LogRetentionDays = "log_retention_days",
+  LlmCacheEnabled = "llm_cache_enabled",
 }

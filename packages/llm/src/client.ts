@@ -1,6 +1,7 @@
 import { getConfigValue } from "@bb/config";
 import { Config } from "@bb/types";
 import { LlmConfigError, LlmError } from "@bb/errors";
+import { computeCacheKey, getCachedDecision, isCacheEnabled, recordDecision, recordHit } from "./cache.ts";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_TIMEOUT_MS = 360_000;
@@ -63,6 +64,25 @@ export async function askLLM(prompt: string, opts: AskLlmOptions = {}): Promise<
   const cappedChain = uniqueChain.slice(0, 3);
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
+  const cacheOn = isCacheEnabled();
+  const cacheKey = cacheOn
+    ? computeCacheKey({
+        prompt,
+        systemPrompt: opts.systemPrompt ?? null,
+        modelChain: cappedChain,
+      })
+    : null;
+  if (cacheOn && cacheKey !== null) {
+    const cached = await getCachedDecision(cacheKey);
+    if (cached !== null) {
+      const saved = cached.usage.inputTokens + cached.usage.outputTokens;
+      console.info(`[LLM CACHE HIT] key=${cacheKey.slice(0, 8)} tokens-saved=${saved}`);
+      void recordHit(cacheKey);
+      return { content: cached.content, usage: cached.usage };
+    }
+    console.info(`[LLM CACHE MISS] key=${cacheKey.slice(0, 8)}`);
+  }
+
   const messages: OpenRouterMessage[] = [];
   if (opts.systemPrompt !== undefined) {
     messages.push({ role: "system", content: opts.systemPrompt });
@@ -104,7 +124,7 @@ export async function askLLM(prompt: string, opts: AskLlmOptions = {}): Promise<
   if (typeof content !== "string" || content.length === 0) {
     throw new LlmError("OpenRouter returned empty completion");
   }
-  return {
+  const result: AskLlmResult = {
     content,
     usage: {
       model: typeof json.model === "string" && json.model.length > 0 ? json.model : model,
@@ -112,4 +132,12 @@ export async function askLLM(prompt: string, opts: AskLlmOptions = {}): Promise<
       outputTokens: typeof json.usage?.completion_tokens === "number" ? json.usage.completion_tokens : 0,
     },
   };
+  if (cacheOn && cacheKey !== null) {
+    void recordDecision(cacheKey, {
+      content: result.content,
+      usage: result.usage,
+      modelChain: cappedChain,
+    });
+  }
+  return result;
 }
