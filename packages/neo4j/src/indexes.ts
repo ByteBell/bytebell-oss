@@ -3,6 +3,7 @@ import { _runCypher } from "./client.ts";
 const CONSTRAINTS = [
   "CREATE CONSTRAINT knowledge_id IF NOT EXISTS FOR (k:Knowledge) REQUIRE k.knowledgeId IS UNIQUE",
   "CREATE CONSTRAINT file_unique IF NOT EXISTS FOR (f:File) REQUIRE (f.knowledgeId, f.relativePath) IS UNIQUE",
+  "CREATE CONSTRAINT file_version_unique IF NOT EXISTS FOR (fv:FileVersion) REQUIRE (fv.knowledgeId, fv.relativePath, fv.commitHash) IS UNIQUE",
   "CREATE CONSTRAINT keyword_name IF NOT EXISTS FOR (kw:Keyword) REQUIRE kw.name IS UNIQUE",
   "CREATE CONSTRAINT class_signature IF NOT EXISTS FOR (c:Class) REQUIRE c.signature IS UNIQUE",
   "CREATE CONSTRAINT function_signature IF NOT EXISTS FOR (fn:Function) REQUIRE fn.signature IS UNIQUE",

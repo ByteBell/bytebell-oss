@@ -18,6 +18,29 @@ export async function setKnowledgeState(knowledgeId: string, state: KnowledgeSta
   }
 }
 
+/**
+ * Records that this knowledge is now indexed at `commitHash`. Sets it as the
+ * current head pointer (`source.commitId`) and appends to the deduped history
+ * array (`source.commitHashes`). Idempotent: re-recording the same commit is
+ * a no-op except for the `updatedAt` bump.
+ *
+ * Throws `KnowledgeNotFoundError` if the document doesn't exist.
+ */
+export async function setKnowledgeCommit(knowledgeId: string, commitHash: string): Promise<void> {
+  const result = await _getDb()
+    .collection(Collections.Knowledge)
+    .updateOne(
+      { knowledgeId },
+      {
+        $set: { "source.commitId": commitHash, updatedAt: new Date() },
+        $addToSet: { "source.commitHashes": commitHash },
+      },
+    );
+  if (result.matchedCount === 0) {
+    throw new KnowledgeNotFoundError(knowledgeId);
+  }
+}
+
 export async function updateKnowledgeProgress(
   knowledgeId: string,
   processedFiles: number,

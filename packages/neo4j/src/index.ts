@@ -8,3 +8,6 @@ export { upsertKnowledgeNode, setKnowledgeStateInGraph, deleteKnowledgeGraph } f
 
 export { upsertFileNode } from "./files.ts";
 export type { UpsertFileNodeInput } from "./files.ts";
+
+export { snapshotFilesToVersion } from "./fileVersions.ts";
+export type { SnapshotFilesInput } from "./fileVersions.ts";

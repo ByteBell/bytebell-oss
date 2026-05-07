@@ -7,7 +7,7 @@ import { getBytebellHome, getConfigValue } from "@bb/config";
 
 const HEALTH_TIMEOUT_MS = 500;
 const SPAWN_POLL_INTERVAL_MS = 200;
-const SPAWN_MAX_POLLS = 50;
+const SPAWN_MAX_POLLS = 500;
 
 export class ServerStartTimeoutError extends Error {
   override readonly name = "ServerStartTimeoutError";

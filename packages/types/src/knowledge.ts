@@ -11,6 +11,10 @@ export interface GithubKnowledgeSource {
   kind: "github";
   repoUrl: string;
   branch?: string;
+  /** Current head pointer — the most recently indexed commit. */
+  commitId?: string;
+  /** Every commit this knowledge has been indexed at, oldest → newest. Pull appends to this list. */
+  commitHashes?: string[];
 }
 
 export interface LocalKnowledgeSource {

@@ -20,8 +20,12 @@ export interface GithubIndexPayload {
 
 export interface GithubPullPayload {
   knowledgeId: string;
+  /**
+   * Optional anchor for the commit the caller already resolved (CLI / route may pre-fetch HEAD).
+   * The worker reads `git rev-parse HEAD` after clone regardless, but this field lets early
+   * idempotency checks short-circuit before enqueue when the caller already knows HEAD.
+   */
   latestCommitHash?: string;
-  isShallow: boolean;
   gitToken?: string;
 }
 

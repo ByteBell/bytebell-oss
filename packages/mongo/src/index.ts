@@ -3,6 +3,7 @@ export type { PingResult } from "./client.ts";
 
 export {
   getKnowledge,
+  setKnowledgeCommit,
   setKnowledgeState,
   updateKnowledgeProgress,
   upsertKnowledge,

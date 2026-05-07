@@ -4,6 +4,7 @@ import { buildSetCommand } from "./SetCommand.ts";
 import { buildServerCommand } from "./ServerCommand.ts";
 import { buildIndexCommand } from "./IndexCommand.ts";
 import { buildIngestCommand } from "./IngestCommand.ts";
+import { buildPullCommand } from "./PullCommand.ts";
 import { buildLsCommand } from "./LsCommand.ts";
 import { buildBootCommand } from "./BootCommand.ts";
 import { buildShutdownCommand } from "./ShutdownCommand.ts";
@@ -23,6 +24,7 @@ async function main(): Promise<void> {
   program.addCommand(buildServerCommand());
   program.addCommand(buildIndexCommand());
   program.addCommand(buildIngestCommand());
+  program.addCommand(buildPullCommand());
   program.addCommand(buildLsCommand());
   program.addCommand(buildDeleteCommand());
   program.addCommand(buildStatsCommand());

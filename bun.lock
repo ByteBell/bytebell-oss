@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "bytebell-public",
@@ -74,6 +75,7 @@
       "dependencies": {
         "@bb/config": "workspace:*",
         "@bb/errors": "workspace:*",
+        "@bb/mongo": "workspace:*",
         "@bb/types": "workspace:*",
         "tiktoken": "^1.0.22",
       },
@@ -93,6 +95,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@bb/config": "workspace:*",
+        "@bb/llm": "workspace:*",
         "@bb/logger": "workspace:*",
         "@bb/neo4j": "workspace:*",
         "@bb/types": "workspace:*",
