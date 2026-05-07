@@ -64,9 +64,10 @@ gitToken? })`. Delegates to `node:child_process.execFile` (no shell,
   returns `{ language, analysis }`. Builds the 7-field stripped prompt,
   calls `askLLM`, strips fences, parses, validates each field, falls
   back to `emptyAnalysis()` on any LLM/parse failure (no retry — BullMQ
-  handles whole-job retry). Language detection via `EXTENSION_LANGUAGE`
-  map with `dockerfile` special-case and `plaintext` fallback. Content
-  truncated at 60 KB before prompting.
+  handles whole-job retry). Language is taken verbatim from the LLM's
+  `language` field; on LLM failure, parse failure, or missing/empty
+  value, falls back to `"unknown"`. Content truncated at 60 KB before
+  prompting.
 
 ## Module dependency graph
 
@@ -75,7 +76,7 @@ paths.ts                       → @bb/config, node:fs/promises, node:path
 clone.ts                       → @bb/errors, node:child_process, node:fs/promises,
                                  node:path, node:util
 scan.ts                        → node:fs/promises, node:path
-analyze.ts                     → @bb/llm, @bb/mongo (FileAnalysis type), node:path
+analyze.ts                     → @bb/llm, @bb/mongo (FileAnalysis type)
 Strategy.ts                    → (leaf — type-only, no imports)
 BasicFileAnalysisStrategy.ts   → @bb/mongo (upsertRawFile),
                                  @bb/neo4j (upsertFileNode),
