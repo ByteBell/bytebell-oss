@@ -75,6 +75,36 @@ export interface ScannedFile {
   content: string;
 }
 
+export async function countFiles(rootDir: string): Promise<number> {
+  let count = 0;
+  async function scan(currentDir: string) {
+    const dir = await opendir(currentDir);
+    for await (const entry of dir) {
+      const abs = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) {
+          continue;
+        }
+        await scan(abs);
+      } else if (entry.isFile()) {
+        if (SKIP_FILES.has(entry.name)) {
+          continue;
+        }
+        if (BINARY_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+          continue;
+        }
+        // Skip size check for counting or keep it? Keep it for consistency.
+        const sizeBytes = (await stat(abs)).size;
+        if (sizeBytes <= MAX_FILE_BYTES) {
+          count++;
+        }
+      }
+    }
+  }
+  await scan(rootDir);
+  return count;
+}
+
 export async function* walkRepo(rootDir: string): AsyncGenerator<ScannedFile> {
   yield* walk(rootDir, rootDir);
 }

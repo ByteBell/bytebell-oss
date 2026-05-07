@@ -1,7 +1,14 @@
 export { connectMongo, closeMongo, pingMongo } from "./client.ts";
 export type { PingResult } from "./client.ts";
 
-export { setKnowledgeState, upsertKnowledge, listKnowledge, deleteKnowledge } from "./knowledge.ts";
+export {
+  getKnowledge,
+  setKnowledgeState,
+  updateKnowledgeProgress,
+  upsertKnowledge,
+  listKnowledge,
+  deleteKnowledge,
+} from "./knowledge.ts";
 export type { KnowledgeListEntry, DeleteKnowledgeResult } from "./knowledge.ts";
 
 export { upsertRawFile } from "./raw.ts";

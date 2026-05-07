@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import type { ModelTokenBreakdown } from "@bb/types";
-import { upsertRawFile } from "@bb/mongo";
+import { updateKnowledgeProgress, upsertRawFile } from "@bb/mongo";
 import { upsertFileNode } from "@bb/neo4j";
-import { walkRepo } from "./scan.ts";
+import { countFiles, walkRepo } from "./scan.ts";
 import { analyzeFile } from "./analyze.ts";
 import type { IngestionContext, IngestionResult, IngestionStrategy } from "./Strategy.ts";
 
@@ -10,6 +10,9 @@ export class BasicFileAnalysisStrategy implements IngestionStrategy {
   readonly name = "basic-file-analysis";
 
   async ingest({ knowledgeId, rootDir }: IngestionContext): Promise<IngestionResult> {
+    const totalFiles = await countFiles(rootDir);
+    await updateKnowledgeProgress(knowledgeId, 0, totalFiles);
+
     const modelTokens: ModelTokenBreakdown = {};
     let filesAnalyzed = 0;
     for await (const file of walkRepo(rootDir)) {
@@ -34,8 +37,9 @@ export class BasicFileAnalysisStrategy implements IngestionStrategy {
       });
       if (usage !== null) {
         accumulate(modelTokens, usage.model, usage.inputTokens, usage.outputTokens);
-        filesAnalyzed += 1;
       }
+      filesAnalyzed += 1;
+      await updateKnowledgeProgress(knowledgeId, filesAnalyzed);
     }
     return { filesAnalyzed, modelTokens };
   }

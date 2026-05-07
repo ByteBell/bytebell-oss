@@ -1,7 +1,9 @@
 import { Command } from "commander";
+import { Config } from "@bb/types";
+import { getConfigValue } from "@bb/config";
 import { ensureServerRunning, ServerStartTimeoutError } from "./serverSpawn.ts";
 import { getJson, HttpClientError } from "./httpClient.ts";
-import { error } from "./output.ts";
+import { createSpinner, error } from "./output.ts";
 
 interface RepoEntry {
   knowledgeId: string;
@@ -24,9 +26,17 @@ export function buildLsCommand(): Command {
 
 async function runLs(): Promise<void> {
   try {
-    const ctx = await ensureServerRunning();
-    if (ctx.alreadyRunning === false && ctx.logPath !== undefined) {
-      process.stderr.write(`(started server in background; logs: ${ctx.logPath})\n`);
+    let ctx: Awaited<ReturnType<typeof ensureServerRunning>>;
+    if (
+      await fetch(`http://127.0.0.1:${getConfigValue(Config.ServerPort)}/health`)
+        .then((r) => r.ok)
+        .catch(() => false)
+    ) {
+      ctx = await ensureServerRunning();
+    } else {
+      const spinner = createSpinner("Starting ByteBell server in background...");
+      ctx = await ensureServerRunning((line) => spinner.update(line));
+      spinner.stop(true, `Server started (logs: ${ctx.logPath ?? "n/a"})`);
     }
     const { repos } = await getJson<ListResponse>("/api/v1/repos");
     if (repos.length === 0) {

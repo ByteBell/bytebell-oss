@@ -1,6 +1,6 @@
 import type { Request, Response, Router } from "express";
 import express from "express";
-import { listKnowledge } from "@bb/mongo";
+import { getKnowledge, listKnowledge } from "@bb/mongo";
 
 export function buildReposRoute(): Router {
   const router = express.Router();
@@ -16,5 +16,31 @@ export function buildReposRoute(): Router {
     }));
     res.status(200).json({ repos });
   });
+
+  router.get("/api/v1/repos/:id", async (req: Request, res: Response) => {
+    const id = req.params["id"];
+    if (typeof id !== "string") {
+      res.status(400).json({ error: "invalid id" });
+      return;
+    }
+    const entry = await getKnowledge(id);
+    if (entry === null) {
+      res.status(404).json({ error: "knowledge not found" });
+      return;
+    }
+    res.status(200).json({
+      knowledgeId: entry.knowledgeId,
+      source: entry.source,
+      state: entry.status.state,
+      createdAt:
+        entry.createdAt instanceof Date ? entry.createdAt.toISOString() : new Date(entry.createdAt).toISOString(),
+      updatedAt:
+        entry.updatedAt instanceof Date ? entry.updatedAt.toISOString() : new Date(entry.updatedAt).toISOString(),
+      fileCount: entry.fileCount,
+      totalFiles: entry.status.totalFiles,
+      processedFiles: entry.status.processedFiles,
+    });
+  });
+
   return router;
 }

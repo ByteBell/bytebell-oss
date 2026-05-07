@@ -19,12 +19,18 @@ export class ServerStartTimeoutError extends Error {
   }
 }
 
-export async function ensureServerRunning(): Promise<{ alreadyRunning: boolean; logPath?: string }> {
+export async function ensureServerRunning(onProgress?: (line: string) => void): Promise<{
+  alreadyRunning: boolean;
+  logPath?: string;
+}> {
   if (await isHealthy()) {
     return { alreadyRunning: true };
   }
   const logPath = await spawnDetached();
   for (let i = 0; i < SPAWN_MAX_POLLS; i++) {
+    if (onProgress !== undefined) {
+      onProgress(`waiting for server health check (${i + 1}/${SPAWN_MAX_POLLS})`);
+    }
     await sleep(SPAWN_POLL_INTERVAL_MS);
     if (await isHealthy()) {
       return { alreadyRunning: false, logPath };

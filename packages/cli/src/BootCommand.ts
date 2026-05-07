@@ -10,7 +10,7 @@ import {
   up,
 } from "./dockerInfra.ts";
 import { ServerStartTimeoutError, ensureServerRunning } from "./serverSpawn.ts";
-import { error, success } from "./output.ts";
+import { createSpinner, error, success } from "./output.ts";
 
 export function buildBootCommand(): Command {
   const cmd = new Command("boot");
@@ -39,26 +39,37 @@ async function runBoot(): Promise<void> {
     return;
   }
 
+  const dockerSpinner = createSpinner("Starting Docker infrastructure...");
   try {
     const result = await up({
       neo4jPassword: defaults.neo4jPassword,
       onProgress: (line) => {
-        process.stderr.write(`docker: ${line}\n`);
+        dockerSpinner.update(`Docker: ${line}`);
       },
     });
-    success(`docker compose up -d (${composeFilePath()})`);
+    dockerSpinner.stop(true, `Docker infra is up (${composeFilePath()})`);
     success(`mongo  → ${result.services.mongo}`);
     success(`neo4j  → ${result.services.neo4j}`);
     success(`redis  → ${result.services.redis}`);
   } catch (cause: unknown) {
+    dockerSpinner.stop(false, "Docker startup failed");
     handleDockerError(cause);
     return;
   }
 
   let serverContext: Awaited<ReturnType<typeof ensureServerRunning>>;
+  const serverSpinner = createSpinner("Starting ByteBell server...");
   try {
-    serverContext = await ensureServerRunning();
+    serverContext = await ensureServerRunning((line) => {
+      serverSpinner.update(`Server: ${line}`);
+    });
+    if (serverContext.alreadyRunning) {
+      serverSpinner.stop(true, `Server already running`);
+    } else {
+      serverSpinner.stop(true, `Server started (logs: ${serverContext.logPath ?? "n/a"})`);
+    }
   } catch (cause: unknown) {
+    serverSpinner.stop(false, "Server startup failed");
     if (cause instanceof ServerStartTimeoutError) {
       error(cause.message);
     } else {
@@ -69,11 +80,6 @@ async function runBoot(): Promise<void> {
   }
 
   const port = getConfigValue(Config.ServerPort);
-  if (serverContext.alreadyRunning) {
-    success(`server already running at http://127.0.0.1:${port}`);
-  } else {
-    success(`server started (logs: ${serverContext.logPath ?? "n/a"})`);
-  }
   success(`MCP endpoint: http://127.0.0.1:${port}/mcp`);
   process.stdout.write("\nNext: bytebell index <git-url>  or  bytebell ingest [path]\n");
 }

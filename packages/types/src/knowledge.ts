@@ -23,7 +23,7 @@ export type KnowledgeSource = GithubKnowledgeSource | LocalKnowledgeSource;
 export interface KnowledgeDoc {
   knowledgeId: string;
   source: KnowledgeSource;
-  status: { state: KnowledgeState };
+  status: { state: KnowledgeState; totalFiles?: number; processedFiles?: number };
   createdAt: Date;
   updatedAt: Date;
 }

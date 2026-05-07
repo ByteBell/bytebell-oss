@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { getBytebellHome } from "@bb/config";
 import { composeFilePath } from "./dockerInfra.ts";
-import { error, success } from "./output.ts";
+import { createSpinner, error, success } from "./output.ts";
 
 const POLL_INTERVAL_MS = 500;
 const POLL_TIMEOUT_MS = 30_000;
@@ -23,15 +23,17 @@ async function runShutdown(): Promise<void> {
     return;
   }
 
+  const spinner = createSpinner("Shutting down ByteBell server...");
   try {
     process.kill(pid, "SIGTERM");
   } catch (cause: unknown) {
     const code = (cause as { code?: string } | undefined)?.code;
     if (code === "ESRCH") {
-      success("server pid file was stale; nothing to stop.");
+      spinner.stop(true, "server pid file was stale; nothing to stop.");
       process.stdout.write(dockerHint());
       return;
     }
+    spinner.stop(false, "Failed to send SIGTERM");
     error(cause instanceof Error ? cause.message : String(cause));
     process.exitCode = 1;
     return;
@@ -39,9 +41,12 @@ async function runShutdown(): Promise<void> {
 
   const drained = await waitForPidFileGone(pidFile);
   if (drained) {
-    success(`server (pid ${pid}) shut down gracefully.`);
+    spinner.stop(true, `server (pid ${pid}) shut down gracefully.`);
   } else {
-    error(`server (pid ${pid}) did not exit within ${POLL_TIMEOUT_MS / 1000}s; not escalating to SIGKILL.`);
+    spinner.stop(
+      false,
+      `server (pid ${pid}) did not exit within ${POLL_TIMEOUT_MS / 1000}s; not escalating to SIGKILL.`,
+    );
     process.exitCode = 1;
   }
   process.stdout.write(dockerHint());
