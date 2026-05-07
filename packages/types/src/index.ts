@@ -12,3 +12,4 @@ export type {
   StatsResponse,
   StatsTotals,
 } from "./stats.ts";
+export type { UsageDoc, ActivityDoc, UsageIncrement, ActivityInput } from "./usage.ts";

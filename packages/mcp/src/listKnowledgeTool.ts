@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { UsageTracker } from "@bb/llm";
 import { runCypher } from "@bb/neo4j";
 
 const MAX_PAGE_CHARS = 20_000;
@@ -64,8 +65,15 @@ interface RawRow {
 
 export function registerListKnowledgeTool(server: McpServer): void {
   server.registerTool("list_knowledge", { description, inputSchema: schema }, async (args: ListKnowledgeInput) => {
+    const startTime = Date.now();
     const result = await runListKnowledge(args);
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    const payload = JSON.stringify(result, null, 2);
+    const durationMs = Date.now() - startTime;
+
+    // Track usage
+    await UsageTracker.track("local-user", "list_knowledge", "list_knowledge", payload, durationMs);
+
+    return { content: [{ type: "text" as const, text: payload }] };
   });
 }
 

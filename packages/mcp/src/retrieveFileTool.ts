@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { UsageTracker } from "@bb/llm";
 import { fetchMetadata, type MetadataResult } from "./retrieveFileMetadata.ts";
 import { readFileRange, type ContentResult } from "./retrieveFileContent.ts";
 import { bulkSearch, type BulkSearchResult } from "./retrieveFileBulk.ts";
@@ -88,8 +89,16 @@ interface RetrieveFileInput {
 
 export function registerRetrieveFileTool(server: McpServer): void {
   server.registerTool("retrieve_file", { description, inputSchema: schema }, async (args: RetrieveFileInput) => {
+    const startTime = Date.now();
     const result = await dispatch(args);
-    return { content: [{ type: "text" as const, text: formatResult(result) }] };
+    const payload = formatResult(result);
+    const durationMs = Date.now() - startTime;
+
+    // Track usage
+    const queryStr = args.relativePath || args.operation || "retrieve_file";
+    await UsageTracker.track("local-user", "retrieve_file", queryStr, payload, durationMs);
+
+    return { content: [{ type: "text" as const, text: payload }] };
   });
 }
 

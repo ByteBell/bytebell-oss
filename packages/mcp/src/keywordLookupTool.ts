@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { runCypher, toNeo4jInt } from "@bb/neo4j";
+import { UsageTracker } from "@bb/llm";
 import { buildFulltextQuery, escapeLucene } from "./smartSearchChannels.ts";
 
 const MATCH_MODES = ["keyword", "class", "function", "module"] as const;
@@ -97,8 +98,15 @@ interface RowShape {
 
 export function registerKeywordLookupTool(server: McpServer): void {
   server.registerTool("keyword_lookup", { description, inputSchema: schema }, async (args: KeywordLookupInput) => {
+    const startTime = Date.now();
     const result = await runKeywordLookup(args);
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+    const payload = JSON.stringify(result, null, 2);
+    const durationMs = Date.now() - startTime;
+
+    // Track usage
+    await UsageTracker.track("local-user", "keyword_lookup", args.term, payload, durationMs);
+
+    return { content: [{ type: "text" as const, text: payload }] };
   });
 }
 

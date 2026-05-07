@@ -16,3 +16,6 @@ export type { FileAnalysis, RawFileDoc } from "./raw.ts";
 
 export { recordProcessingStats, aggregateStats } from "./processingStats.ts";
 export type { RecordProcessingStatsInput } from "./processingStats.ts";
+
+export { incrementUsage, getMonthlyUsage, getGlobalUsage } from "./usage.ts";
+export { recordActivity } from "./activity.ts";

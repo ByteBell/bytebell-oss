@@ -2,7 +2,7 @@ import { Command } from "commander";
 import type { StatsCommitEntry, StatsRepoEntry, StatsResponse } from "@bb/types";
 import { ensureServerRunning, ServerStartTimeoutError } from "./serverSpawn.ts";
 import { getJson, HttpClientError } from "./httpClient.ts";
-import { error } from "./output.ts";
+import { error, table } from "./output.ts";
 
 const COST_UNKNOWN = -1;
 
@@ -53,7 +53,7 @@ function renderRepos(repos: StatsRepoEntry[]): void {
     r.outputTokens.toLocaleString(),
     formatCost(r.estimatedCost),
   ]);
-  writeTable(headers, rows);
+  table(headers, rows);
 }
 
 function renderCommits(commits: StatsCommitEntry[]): void {
@@ -67,18 +67,7 @@ function renderCommits(commits: StatsCommitEntry[]): void {
     String(c.processingTimeMs),
     String(c.filesAnalyzed),
   ]);
-  writeTable(headers, rows);
-}
-
-function writeTable(headers: string[], rows: string[][]): void {
-  const widths = headers.map((h, i) => Math.max(h.length, ...rows.map((row) => row[i]?.length ?? 0)));
-  const writeRow = (cols: string[]): void => {
-    process.stdout.write(cols.map((c, i) => c.padEnd(widths[i] ?? 0)).join("  ") + "\n");
-  };
-  writeRow(headers);
-  for (const row of rows) {
-    writeRow(row);
-  }
+  table(headers, rows);
 }
 
 function formatCost(value: number): string {

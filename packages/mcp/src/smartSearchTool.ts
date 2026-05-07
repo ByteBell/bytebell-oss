@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { UsageTracker } from "@bb/llm";
 import { toNeo4jInt } from "@bb/neo4j";
 import { getLogger } from "@bb/logger";
 import {
@@ -75,9 +76,15 @@ interface SmartSearchInput {
 
 export function registerSmartSearchTool(server: McpServer): void {
   server.registerTool("smart_search", { description, inputSchema: schema }, async (args: SmartSearchInput) => {
+    const startTime = Date.now();
     const result = await runSmartSearch(args);
     let payload = JSON.stringify(result, null, 2);
     payload = trimToCharBudget(result, payload);
+    const durationMs = Date.now() - startTime;
+
+    // Track usage
+    await UsageTracker.track("local-user", "smart_search", args.query, payload, durationMs);
+
     return { content: [{ type: "text" as const, text: payload }] };
   });
 }

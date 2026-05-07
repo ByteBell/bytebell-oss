@@ -6,6 +6,7 @@ import { buildLocalIndexRoute } from "./localIndexRoute.ts";
 import { buildReposRoute } from "./reposRoute.ts";
 import { buildDeleteRoute } from "./deleteRoute.ts";
 import { buildStatsRoute } from "./statsRoute.ts";
+import { buildMcpStatsRoute } from "./mcpStatsRoute.ts";
 
 export function registerRoutes(app: Application): void {
   app.use(buildHealthRoute());
@@ -14,5 +15,6 @@ export function registerRoutes(app: Application): void {
   app.use(buildReposRoute());
   app.use(buildDeleteRoute());
   app.use(buildStatsRoute());
+  app.use(buildMcpStatsRoute());
   mountMcp(app);
 }

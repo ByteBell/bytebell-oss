@@ -134,3 +134,21 @@ export function createProgressBar(initialText: string): ProgressBar {
     },
   };
 }
+export function table(headers: string[], rows: string[][]): void {
+  if (!rows || rows.length === 0) {
+    process.stdout.write(headers.join("  ") + "\n");
+    return;
+  }
+  const widths = headers.map((h, i) => Math.max(h.length, ...rows.map((row) => row[i]?.length ?? 0)));
+  const writeRow = (cols: string[]): void => {
+    process.stdout.write(cols.map((c, i) => c.padEnd(widths[i] ?? 0)).join("  ") + "\n");
+  };
+  writeRow(headers);
+  for (const row of rows) {
+    writeRow(row);
+  }
+}
+
+export function info(line: string): void {
+  process.stdout.write(`${line}\n`);
+}
