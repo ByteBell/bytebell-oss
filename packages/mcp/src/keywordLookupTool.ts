@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { runCypher } from "@bb/neo4j";
+import { runCypher, toNeo4jInt } from "@bb/neo4j";
 import { buildFulltextQuery, escapeLucene } from "./smartSearchChannels.ts";
 
 const MATCH_MODES = ["keyword", "class", "function", "module"] as const;
@@ -151,8 +151,8 @@ async function runMatchQuery(args: MatchQueryArgs): Promise<RowShape[]> {
   const cypher = cypherForMatch(args.match);
   const params: Record<string, unknown> = {
     knowledgeId: args.knowledgeId,
-    keywordLimit: args.keywordLimit,
-    filesPerKeyword: args.filesPerKeyword,
+    keywordLimit: toNeo4jInt(args.keywordLimit),
+    filesPerKeyword: toNeo4jInt(args.filesPerKeyword),
   };
   if (args.match === "module") {
     params["term"] = lower;

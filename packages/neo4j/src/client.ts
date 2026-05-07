@@ -1,4 +1,4 @@
-import { auth, driver as createDriver, type Driver, type Session } from "neo4j-driver";
+import { auth, driver as createDriver, int, type Driver, type Integer, type Session } from "neo4j-driver";
 import { getConfigValue } from "@bb/config";
 import { Config } from "@bb/types";
 import { Neo4jConfigError, Neo4jConnectError, Neo4jNotConnectedError } from "@bb/errors";
@@ -79,6 +79,10 @@ export async function _runCypher<T = unknown>(query: string, params: Record<stri
   } finally {
     await session.close();
   }
+}
+
+export function toNeo4jInt(value: number): Integer {
+  return int(value);
 }
 
 export function __resetForTests(): void {

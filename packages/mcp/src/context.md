@@ -130,10 +130,12 @@ searchExclusions.ts          → (no deps)
 smartSearchChannels.ts       → @bb/neo4j (runCypher), searchExclusions
 smartSearchFusion.ts         → @bb/neo4j (runCypher), smartSearchChannels (types)
 smartSearchTool.ts           → zod, @modelcontextprotocol/sdk/server/mcp.js,
+                               @bb/neo4j (toNeo4jInt), @bb/logger (getLogger),
                                smartSearchChannels, smartSearchFusion, searchExclusions
 
 keywordLookupTool.ts         → zod, @modelcontextprotocol/sdk/server/mcp.js,
-                               @bb/neo4j (runCypher), smartSearchChannels (escape helpers)
+                               @bb/neo4j (runCypher, toNeo4jInt),
+                               smartSearchChannels (escape helpers)
 
 retrieveFileTool.ts          → zod, @modelcontextprotocol/sdk/server/mcp.js,
                                retrieveFileMetadata, retrieveFileContent, retrieveFileBulk
@@ -171,6 +173,16 @@ No cycles. Every read goes through `@bb/neo4j.runCypher` (graph) or
   `closeAllMcpSessions` covers shutdown drain.
 - **No non-null assertions, no `any`, no dynamic `import()`.**
   Repo-wide strict-types rules apply — see CLAUDE.md.
+- **`LIMIT`/`SKIP` params are wrapped with `toNeo4jInt`.** The Neo4j JS
+  driver maps bare `number` to Cypher `Float`, which Neo4j 5 rejects in
+  `LIMIT`. Every `LIMIT $param` site in this package (currently
+  `keywordLookupTool`, `smartSearchTool` → `smartSearchChannels`) binds
+  the value through `toNeo4jInt(...)` from `@bb/neo4j`.
+- **Per-channel failures in `smart_search` are logged, not swallowed.**
+  The Promise.all catch in `smartSearchTool` returns an empty result
+  for a failing channel so the other five still surface, and emits a
+  `warn`-level log via `@bb/logger` so a regression in one channel is
+  visible instead of silently degrading the response.
 
 ## Adding a tool
 

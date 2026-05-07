@@ -12,7 +12,7 @@ export interface SearchParams extends Record<string, unknown> {
   pathPrefix: string | null;
   queryTerms: string[];
   fulltextQuery: string;
-  resultCap: number;
+  resultCap: unknown;
   excludeSuffixes: string[];
   excludeContains: string[];
 }

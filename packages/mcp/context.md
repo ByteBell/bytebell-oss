@@ -38,8 +38,9 @@ The package owns:
 
 The package does **not** own:
 
-- Auth or license gating. MCP is unauthenticated in the OSS engine —
-  see [docs/mcp.md](../../docs/mcp.md) "Transport and mounting".
+- Auth gating. MCP is unauthenticated in the OSS engine —
+  single-tenant, localhost-only. See [docs/mcp.md](../../docs/mcp.md)
+  "Transport and mounting".
 - Mongo or LLM access. The retrieval tools are pure
   graph-and-disk reads.
 - HTTP body parsing — relies on `@bb/server`'s top-level `express.json`.

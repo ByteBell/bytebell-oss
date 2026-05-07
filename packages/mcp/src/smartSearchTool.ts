@@ -1,5 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { toNeo4jInt } from "@bb/neo4j";
+import { getLogger } from "@bb/logger";
 import {
   CHANNEL_RUNNERS,
   buildFulltextQuery,
@@ -90,19 +92,25 @@ async function runSmartSearch(args: SmartSearchInput): Promise<SmartSearchResult
     pathPrefix: args.path ?? null,
     queryTerms: queryTerms.length === 0 ? [args.query.trim().toLowerCase()] : queryTerms,
     fulltextQuery: buildFulltextQuery(queryTerms.length === 0 ? [args.query.trim().toLowerCase()] : queryTerms),
-    resultCap: RESULT_CAP_PER_CHANNEL,
+    resultCap: toNeo4jInt(RESULT_CAP_PER_CHANNEL),
     excludeSuffixes: exclusions.suffixes,
     excludeContains: exclusions.contains,
   };
 
   const channelNames = Object.keys(CHANNEL_RUNNERS) as ChannelName[];
+  const log = getLogger("server");
   const settled = await Promise.all(
     channelNames.map(async (channel): Promise<{ channel: ChannelName; hits: ScoredHit[] }> => {
       try {
         const runner = CHANNEL_RUNNERS[channel];
         const hits = await runner(params);
         return { channel, hits };
-      } catch {
+      } catch (err: unknown) {
+        log.warn("smart_search channel failed", {
+          channel,
+          query: args.query,
+          error: err instanceof Error ? err.message : String(err),
+        });
         return { channel, hits: [] };
       }
     }),
