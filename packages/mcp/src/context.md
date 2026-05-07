@@ -49,12 +49,18 @@ state, fileCount, createdAt, updatedAt}` ordered by
   `smart_search` via the modern `server.registerTool` API. Owns the
   Zod schema, dispatch, parallel-channel orchestration, repo-name
   attachment, pagination, and the JSON char-budget trim loop.
-- **[smartSearchChannels.ts](smartSearchChannels.ts)** — six
-  channel runners (purpose, paths, keywords, classes, functions,
-  imports). Each is one Cypher query that returns
-  `{path, knowledgeId, score}`. `escapeLucene` and `buildFulltextQuery`
-  helpers shared with `keywordLookupTool`. `CHANNEL_RUNNERS` map is
-  exported so the tool can iterate channels generically.
+- **[smartSearchChannels.ts](smartSearchChannels.ts)** — eight
+  channel runners (purpose, businessContext, paths, keywords, classes,
+  functions, importsInternal, importsExternal). Each is one Cypher
+  query that returns `{path, knowledgeId, score}`. `purpose` and
+  `businessContext` use separate fulltext indexes
+  (`idx_file_purpose_summary_ft`, `idx_file_business_context_ft`).
+  `importsInternal` and `importsExternal` traverse the matching
+  `:HAS_IMPORT_INTERNAL` / `:HAS_IMPORT_EXTERNAL` relationship type
+  respectively (kube-package's relative-vs-external split).
+  `escapeLucene` and `buildFulltextQuery` helpers shared with
+  `keywordLookupTool`. `CHANNEL_RUNNERS` map is exported so the tool
+  can iterate channels generically.
 - **[smartSearchFusion.ts](smartSearchFusion.ts)** — pure
   in-memory fusion. `fuseHits` normalizes per-channel scores against
   the channel max, applies fixed weights, dedupes, and accumulates
@@ -63,8 +69,8 @@ state, fileCount, createdAt, updatedAt}` ordered by
   by their first two path segments and returns clusters with
   `file_count ≥ 2`.
 - **[searchExclusions.ts](searchExclusions.ts)** — fixed presets for
-  the six `exclude` categories (tests, vendor, config, generated,
-  docs, build). `EXCLUSION_WHERE` is the Cypher fragment every channel
+  the `exclude` categories (tests, vendor, config, generated, docs,
+  build). `EXCLUSION_WHERE` is the Cypher fragment every channel
   embeds via template literal.
 - **[keywordLookupTool.ts](keywordLookupTool.ts)** — registers
   `keyword_lookup`. The four `match` modes pick the right Cypher
@@ -79,8 +85,10 @@ state, fileCount, createdAt, updatedAt}` ordered by
   rendering for `content` / `content_search` results.
 - **[retrieveFileMetadata.ts](retrieveFileMetadata.ts)** — single
   Cypher that joins `File` to its outgoing edges
-  (`HAS_KEYWORD`/`HAS_CLASS`/`HAS_FUNCTION`/`HAS_IMPORT`) and returns
-  the per-file metadata bundle plus a `notFound[]` list for paths
+  (`HAS_KEYWORD`/`HAS_CLASS`/`HAS_FUNCTION`/`HAS_IMPORT_INTERNAL`/`HAS_IMPORT_EXTERNAL`)
+  and returns the per-file metadata bundle (purpose, summary,
+  businessContext, classes, functions, importsInternal, importsExternal,
+  keywords, language, sizeBytes) plus a `notFound[]` list for paths
   that did not resolve.
 - **[retrieveFileContent.ts](retrieveFileContent.ts)** — disk read
   via `repoFs.readFileLines`, then either a line-range slice with

@@ -65,9 +65,11 @@ interface PingResult {
 interface FileAnalysis {
   purpose: string;
   summary: string;
+  businessContext: string;
   classes: string[];
   functions: string[];
-  imports: string[];
+  importsInternal: string[];
+  importsExternal: string[];
   keywords: string[];
 }
 interface RawFileDoc {

@@ -6,10 +6,12 @@ export interface FileMetadata {
   sizeBytes: number;
   purpose: string;
   summary: string;
+  businessContext: string;
   keywords: string[];
   classes: string[];
   functions: string[];
-  imports: string[];
+  importsInternal: string[];
+  importsExternal: string[];
 }
 
 export interface MetadataResult {
@@ -27,10 +29,12 @@ interface RowShape {
   sizeBytes: number | null;
   purpose: string | null;
   summary: string | null;
+  businessContext: string | null;
   keywords: (string | null)[];
   classes: (string | null)[];
   functions: (string | null)[];
-  imports: (string | null)[];
+  importsInternal: (string | null)[];
+  importsExternal: (string | null)[];
 }
 
 export async function fetchMetadata(knowledgeId: string, relativePaths: readonly string[]): Promise<MetadataResult> {
@@ -51,16 +55,19 @@ export async function fetchMetadata(knowledgeId: string, relativePaths: readonly
     OPTIONAL MATCH (f)-[:HAS_KEYWORD]->(kw:Keyword)
     OPTIONAL MATCH (f)-[:HAS_CLASS]->(c:Class)
     OPTIONAL MATCH (f)-[:HAS_FUNCTION]->(fn:Function)
-    OPTIONAL MATCH (f)-[:HAS_IMPORT]->(m:Module)
+    OPTIONAL MATCH (f)-[:HAS_IMPORT_INTERNAL]->(mi:Module)
+    OPTIONAL MATCH (f)-[:HAS_IMPORT_EXTERNAL]->(me:Module)
     RETURN f.relativePath AS path,
            f.language AS language,
            f.sizeBytes AS sizeBytes,
            f.purpose AS purpose,
            f.summary AS summary,
+           f.businessContext AS businessContext,
            collect(DISTINCT kw.name) AS keywords,
            collect(DISTINCT c.signature) AS classes,
            collect(DISTINCT fn.signature) AS functions,
-           collect(DISTINCT m.name) AS imports
+           collect(DISTINCT mi.name) AS importsInternal,
+           collect(DISTINCT me.name) AS importsExternal
     `,
     { knowledgeId, paths: relativePaths },
   );
@@ -84,10 +91,12 @@ function rowToMetadata(row: RowShape): FileMetadata {
     sizeBytes: Number(row.sizeBytes ?? 0),
     purpose: row.purpose ?? "",
     summary: row.summary ?? "",
+    businessContext: row.businessContext ?? "",
     keywords: filterStrings(row.keywords),
     classes: filterStrings(row.classes),
     functions: filterStrings(row.functions),
-    imports: filterStrings(row.imports),
+    importsInternal: filterStrings(row.importsInternal),
+    importsExternal: filterStrings(row.importsExternal),
   };
 }
 

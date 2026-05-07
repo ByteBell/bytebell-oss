@@ -183,7 +183,7 @@ function cypherForMatch(match: MatchMode): string {
     return `
       MATCH (m:Module) WHERE toLower(m.name) CONTAINS $term
       WITH m ORDER BY m.name LIMIT $keywordLimit
-      MATCH (f:File)-[:HAS_IMPORT]->(m)
+      MATCH (f:File)-[:HAS_IMPORT_INTERNAL|HAS_IMPORT_EXTERNAL]->(m)
       WHERE ($knowledgeId IS NULL OR f.knowledgeId = $knowledgeId)
       MATCH (k:Knowledge {knowledgeId: f.knowledgeId})
       WITH m, f, k LIMIT $keywordLimit * $filesPerKeyword

@@ -11,6 +11,7 @@
   "dependencies": {
     "@bb/config": "workspace:*",
     "@bb/errors": "workspace:*",
-    "@bb/types": "workspace:*"
+    "@bb/types": "workspace:*",
+    "tiktoken": "^1.0.22"
   }
 }

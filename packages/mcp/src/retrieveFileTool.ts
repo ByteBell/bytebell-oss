@@ -18,7 +18,7 @@ OPERATIONS:
 
 1. metadata — full FileNode info for up to ${MAX_METADATA_PATHS} files
    - relativePaths: required (array, max ${MAX_METADATA_PATHS})
-   - returns purpose, summary, classes[], functions[], imports[], keywords[], language, sizeBytes
+   - returns purpose, summary, businessContext, classes[], functions[], importsInternal[], importsExternal[], keywords[], language, sizeBytes
    - ALWAYS call metadata first before fetching content. Class/Function signatures embed approximate line ranges (e.g. "AuthService (~L12-58): ...") — use them to target content reads.
 
 2. content — read a line range or search within a single file

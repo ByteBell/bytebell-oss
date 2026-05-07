@@ -23,15 +23,17 @@ const MIN_PAGE_SIZE = 10;
 const MAX_RESPONSE_CHARS = 32_000;
 const MIN_TRIMMED_RESULTS = 5;
 
-const description = `Search the indexed knowledge graph across all six channels in one call.
+const description = `Search the indexed knowledge graph across all eight channels in one call.
 
 Channels run in parallel:
-- purpose      — fulltext over File.purpose + File.summary
-- paths        — case-insensitive contains over File.relativePath
-- keywords     — fulltext over Keyword.name (linked via HAS_KEYWORD)
-- classes      — fulltext over Class.signature (linked via HAS_CLASS)
-- functions    — fulltext over Function.signature (linked via HAS_FUNCTION)
-- imports      — case-insensitive contains over Module.name (linked via HAS_IMPORT)
+- purpose          — fulltext over File.purpose + File.summary
+- businessContext  — fulltext over File.businessContext (business/product framing)
+- paths            — case-insensitive contains over File.relativePath
+- keywords         — fulltext over Keyword.name (linked via HAS_KEYWORD)
+- classes          — fulltext over Class.signature (linked via HAS_CLASS)
+- functions        — fulltext over Function.signature (linked via HAS_FUNCTION)
+- importsInternal  — case-insensitive contains over Module.name (linked via HAS_IMPORT_INTERNAL — relative imports only)
+- importsExternal  — case-insensitive contains over Module.name (linked via HAS_IMPORT_EXTERNAL — external packages / stdlib)
 
 Returns a deduplicated, fused top-K list of files plus folder clusters.
 
@@ -110,11 +112,13 @@ async function runSmartSearch(args: SmartSearchInput): Promise<SmartSearchResult
 
   const perChannel: Record<ChannelName, ScoredHit[]> = {
     purpose: [],
+    businessContext: [],
     paths: [],
     keywords: [],
     classes: [],
     functions: [],
-    imports: [],
+    importsInternal: [],
+    importsExternal: [],
   };
   const channelsUsed: ChannelName[] = [];
   for (const entry of settled) {

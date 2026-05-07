@@ -114,11 +114,22 @@ async function symbolChannel(
   return toScoredHits(await runCypher<RowShape>(cypher, params));
 }
 
-async function chImports(params: SearchParams): Promise<ScoredHit[]> {
+async function chImportsInternal(params: SearchParams): Promise<ScoredHit[]> {
+  return importsChannel(params, "HAS_IMPORT_INTERNAL");
+}
+
+async function chImportsExternal(params: SearchParams): Promise<ScoredHit[]> {
+  return importsChannel(params, "HAS_IMPORT_EXTERNAL");
+}
+
+async function importsChannel(
+  params: SearchParams,
+  rel: "HAS_IMPORT_INTERNAL" | "HAS_IMPORT_EXTERNAL",
+): Promise<ScoredHit[]> {
   const cypher = `
     MATCH (m:Module)
     WHERE ANY(term IN $queryTerms WHERE toLower(m.name) CONTAINS term)
-    MATCH (f:File)-[:HAS_IMPORT]->(m)
+    MATCH (f:File)-[:${rel}]->(m)
     WHERE ${SHARED_FILE_FILTERS}
     WITH DISTINCT f, 1.0 AS score
     ORDER BY f.relativePath LIMIT $resultCap
@@ -127,15 +138,36 @@ async function chImports(params: SearchParams): Promise<ScoredHit[]> {
   return toScoredHits(await runCypher<RowShape>(cypher, params));
 }
 
-export type ChannelName = "purpose" | "paths" | "keywords" | "classes" | "functions" | "imports";
+async function chBusinessContext(params: SearchParams): Promise<ScoredHit[]> {
+  const cypher = `
+    CALL db.index.fulltext.queryNodes('idx_file_business_context_ft', $fulltextQuery)
+    YIELD node AS f, score
+    WHERE ${SHARED_FILE_FILTERS}
+    WITH f, score ORDER BY score DESC LIMIT $resultCap
+    ${COLLECT_RETURN}
+  `;
+  return toScoredHits(await runCypher<RowShape>(cypher, params));
+}
+
+export type ChannelName =
+  | "purpose"
+  | "businessContext"
+  | "paths"
+  | "keywords"
+  | "classes"
+  | "functions"
+  | "importsInternal"
+  | "importsExternal";
 
 export const CHANNEL_RUNNERS: Record<ChannelName, (params: SearchParams) => Promise<ScoredHit[]>> = {
   purpose: chPurpose,
+  businessContext: chBusinessContext,
   paths: chPaths,
   keywords: chKeywords,
   classes: chClasses,
   functions: chFunctions,
-  imports: chImports,
+  importsInternal: chImportsInternal,
+  importsExternal: chImportsExternal,
 };
 
 export function escapeLucene(term: string): string {

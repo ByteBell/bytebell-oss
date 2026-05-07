@@ -11,6 +11,7 @@ const CONSTRAINTS = [
 
 const FULLTEXT_INDEXES = [
   "CREATE FULLTEXT INDEX idx_file_purpose_summary_ft IF NOT EXISTS FOR (f:File) ON EACH [f.purpose, f.summary]",
+  "CREATE FULLTEXT INDEX idx_file_business_context_ft IF NOT EXISTS FOR (f:File) ON EACH [f.businessContext]",
   "CREATE FULLTEXT INDEX idx_keyword_name_ft IF NOT EXISTS FOR (kw:Keyword) ON EACH [kw.name]",
   "CREATE FULLTEXT INDEX idx_symbol_signature_ft IF NOT EXISTS FOR (n:Class|Function) ON EACH [n.signature]",
 ];

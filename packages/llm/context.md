@@ -30,6 +30,11 @@ Single, minimal OpenRouter-backed LLM call surface for v0:
   reference `askLLM` shape)
 - Typed errors via `@bb/errors`: `LlmConfigError` (missing key) and
   `LlmError` (HTTP non-2xx, timeout, empty completion)
+- `tokenLen(text)`, `encodeTokens(text)`, `decodeTokens(tokens)` —
+  thin wrappers over `tiktoken` (`cl100k_base` encoding). Lazy-cached
+  encoder at module scope; char/4 fallback only fires on tokenizer
+  init failure. Used by `@bb/ingest-github` for chunk sizing,
+  routing, and condense-prompt budgeting.
 
 ## Public exports
 
@@ -37,6 +42,9 @@ Single, minimal OpenRouter-backed LLM call surface for v0:
 function askLLM(prompt: string, opts?: AskLlmOptions): Promise<AskLlmResult>;
 function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): Promise<number>;
 function estimateCostFromBreakdown(modelTokens: ModelTokenBreakdown): Promise<number>;
+function tokenLen(text: string): number;
+function encodeTokens(text: string): number[];
+function decodeTokens(tokens: number[]): string;
 
 interface AskLlmOptions {
   model?: string; // overrides Config.OpenrouterModel
@@ -83,10 +91,17 @@ cost ledger described in [docs/arch.md:137](../../docs/arch.md#L137) is
 5. **Timeout is enforced.** AbortController fires at `timeoutMs`; the
    resulting `AbortError` is wrapped in `LlmError` with the timeout in
    the message.
+6. **Tokenizer is module-cached.** `tiktoken`'s `cl100k_base` encoder
+   is lazy-initialized on first `tokenLen` call and reused for the
+   process lifetime. Chosen because every modern OpenRouter chat model
+   tokenizes within ~10% of `cl100k_base` for code-shaped input. Char/4
+   fallback only fires on tokenizer init failure.
 
 ## External dependencies
 
 - Bun's built-in `fetch` (no SDK, no axios)
+- `tiktoken` — WASM-backed BPE tokenizer (matches kube-package's
+  current `askLLM.ts`). Bun handles WASM modules natively.
 - `@bb/config`, `@bb/types`, `@bb/errors` — all `workspace:*`
 
 ## What is intentionally out of scope (v0)

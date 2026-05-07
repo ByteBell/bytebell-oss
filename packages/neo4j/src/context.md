@@ -43,11 +43,14 @@ branch / repoName / state / createdAt / updatedAt` (createdAt only on
   1. MERGE `:File {knowledgeId, relativePath}`, SET its scalar props,
      MERGE the `:HAS_FILE` rel from the parent `:Knowledge`.
   2. DELETE all existing `:HAS_KEYWORD / :HAS_CLASS / :HAS_FUNCTION /
-:HAS_IMPORT` rels so re-runs produce a clean entity attachment.
+:HAS_IMPORT_INTERNAL / :HAS_IMPORT_EXTERNAL` rels so re-runs produce
+     a clean entity attachment.
   3. UNWIND keywords (lowercased) → MERGE `:Keyword` + MERGE
      `:HAS_KEYWORD` rel.
   4. UNWIND classes → MERGE `:Class {signature}` + rel.
-  5. Same for functions and imports.
+  5. Same for functions; imports split into two passes — `importsInternal`
+     attaches `:HAS_IMPORT_INTERNAL`, `importsExternal` attaches
+     `:HAS_IMPORT_EXTERNAL`. Both target the shared `:Module {name}` node.
 
   Each entity attachment runs in its own session (one network round-trip
   per group). Skipped entirely if the corresponding analysis array is

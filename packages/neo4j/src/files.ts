@@ -8,6 +8,7 @@ SET f.language = $language,
     f.sizeBytes = $sizeBytes,
     f.purpose = $purpose,
     f.summary = $summary,
+    f.businessContext = $businessContext,
     f.updatedAt = $updatedAt
 WITH f
 MATCH (k:Knowledge {knowledgeId: $knowledgeId})
@@ -29,8 +30,13 @@ MATCH (f:File {knowledgeId: $knowledgeId, relativePath: $relativePath})-[r:HAS_F
 DELETE r
 `;
 
-const CLEAR_IMPORTS = `
-MATCH (f:File {knowledgeId: $knowledgeId, relativePath: $relativePath})-[r:HAS_IMPORT]->()
+const CLEAR_IMPORTS_INTERNAL = `
+MATCH (f:File {knowledgeId: $knowledgeId, relativePath: $relativePath})-[r:HAS_IMPORT_INTERNAL]->()
+DELETE r
+`;
+
+const CLEAR_IMPORTS_EXTERNAL = `
+MATCH (f:File {knowledgeId: $knowledgeId, relativePath: $relativePath})-[r:HAS_IMPORT_EXTERNAL]->()
 DELETE r
 `;
 
@@ -55,11 +61,18 @@ MERGE (fn:Function {signature: signature})
 MERGE (f)-[:HAS_FUNCTION]->(fn)
 `;
 
-const ATTACH_IMPORTS = `
+const ATTACH_IMPORTS_INTERNAL = `
 MATCH (f:File {knowledgeId: $knowledgeId, relativePath: $relativePath})
 UNWIND $names AS name
 MERGE (m:Module {name: name})
-MERGE (f)-[:HAS_IMPORT]->(m)
+MERGE (f)-[:HAS_IMPORT_INTERNAL]->(m)
+`;
+
+const ATTACH_IMPORTS_EXTERNAL = `
+MATCH (f:File {knowledgeId: $knowledgeId, relativePath: $relativePath})
+UNWIND $names AS name
+MERGE (m:Module {name: name})
+MERGE (f)-[:HAS_IMPORT_EXTERNAL]->(m)
 `;
 
 export interface UpsertFileNodeInput {
@@ -80,13 +93,15 @@ export async function upsertFileNode(input: UpsertFileNodeInput): Promise<void> 
     sizeBytes: input.sizeBytes,
     purpose: input.analysis.purpose,
     summary: input.analysis.summary,
+    businessContext: input.analysis.businessContext,
     updatedAt: new Date().toISOString(),
   });
 
   await _runCypher(CLEAR_KEYWORDS, params);
   await _runCypher(CLEAR_CLASSES, params);
   await _runCypher(CLEAR_FUNCTIONS, params);
-  await _runCypher(CLEAR_IMPORTS, params);
+  await _runCypher(CLEAR_IMPORTS_INTERNAL, params);
+  await _runCypher(CLEAR_IMPORTS_EXTERNAL, params);
 
   if (input.analysis.keywords.length > 0) {
     await _runCypher(ATTACH_KEYWORDS, { ...params, names: input.analysis.keywords.map((k) => k.toLowerCase()) });
@@ -97,7 +112,10 @@ export async function upsertFileNode(input: UpsertFileNodeInput): Promise<void> 
   if (input.analysis.functions.length > 0) {
     await _runCypher(ATTACH_FUNCTIONS, { ...params, signatures: input.analysis.functions });
   }
-  if (input.analysis.imports.length > 0) {
-    await _runCypher(ATTACH_IMPORTS, { ...params, names: input.analysis.imports });
+  if (input.analysis.importsInternal.length > 0) {
+    await _runCypher(ATTACH_IMPORTS_INTERNAL, { ...params, names: input.analysis.importsInternal });
+  }
+  if (input.analysis.importsExternal.length > 0) {
+    await _runCypher(ATTACH_IMPORTS_EXTERNAL, { ...params, names: input.analysis.importsExternal });
   }
 }

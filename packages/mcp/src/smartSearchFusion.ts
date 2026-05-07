@@ -27,12 +27,14 @@ export interface SmartSearchResult {
 }
 
 const CHANNEL_WEIGHTS: Record<ChannelName, number> = {
-  purpose: 0.3,
+  purpose: 0.25,
+  businessContext: 0.05,
   paths: 0.2,
   keywords: 0.2,
   classes: 0.15,
   functions: 0.1,
-  imports: 0.05,
+  importsInternal: 0.025,
+  importsExternal: 0.025,
 };
 
 export function fuseHits(perChannel: Record<ChannelName, ScoredHit[]>): Map<string, FusedResult> {
