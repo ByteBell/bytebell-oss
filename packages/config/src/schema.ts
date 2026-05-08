@@ -29,6 +29,7 @@ export const configSchema = z
     concurrency: concurrencySchema.default({ github: 2 }),
     log_level: z.enum(LOG_LEVELS).default("info"),
     log_retention_days: z.number().int().positive().default(14),
+    llm_cache_enabled: z.boolean().default(true),
   })
   .strict();
 
@@ -52,6 +53,7 @@ export type ConfigValueMap = {
   [Config.ConcurrencyGithub]: number;
   [Config.LogLevel]: LogLevel;
   [Config.LogRetentionDays]: number;
+  [Config.LlmCacheEnabled]: boolean;
 };
 
 export type ConfigValue<K extends Config> = ConfigValueMap[K];
@@ -81,6 +83,7 @@ export const HINTS: Readonly<Record<Config, string>> = {
   [Config.ConcurrencyGithub]: "bytebell set concurrency.github <n>",
   [Config.LogLevel]: "bytebell set log-level <error|warn|info|debug>",
   [Config.LogRetentionDays]: "bytebell set log-retention-days <n>",
+  [Config.LlmCacheEnabled]: "bytebell set llm_cache_enabled <true|false>",
 };
 
 export function readField<K extends Config>(cfg: BytebellConfig, key: K): ConfigValue<K> {
@@ -115,6 +118,8 @@ export function readField<K extends Config>(cfg: BytebellConfig, key: K): Config
       return cfg.log_level as ConfigValue<K>;
     case Config.LogRetentionDays:
       return cfg.log_retention_days as ConfigValue<K>;
+    case Config.LlmCacheEnabled:
+      return cfg.llm_cache_enabled as ConfigValue<K>;
   }
 }
 
@@ -150,5 +155,7 @@ export function writeField<K extends Config>(cfg: BytebellConfig, key: K, value:
       return { ...cfg, log_level: value as LogLevel };
     case Config.LogRetentionDays:
       return { ...cfg, log_retention_days: value as number };
+    case Config.LlmCacheEnabled:
+      return { ...cfg, llm_cache_enabled: value as boolean };
   }
 }

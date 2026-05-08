@@ -58,15 +58,45 @@ interface AskLlmResult {
 }
 ```
 
-The package has no internal state, no caching, no module-scoped client.
-Each call constructs its own `fetch` request.
+The package has no module-scoped HTTP client. Each `askLLM` call
+constructs its own `fetch` request.
+
+## On-disk decision cache
+
+`askLLM` consults a filesystem-backed cache before issuing a request.
+Implemented in `src/cache.ts`:
+
+- **Location**: `~/.bytebell/repos/llmdecisions/<sha256-hex>.json` (one
+  file per cache key). Resolved via `@bb/config`'s `getBytebellHome()`.
+- **Key**: `sha256(JSON.stringify({ prompt, systemPrompt, modelChain }))`
+  where `modelChain` is the resolved deduped capped-at-3 chain.
+  `timeoutMs` is intentionally excluded.
+- **Entry shape**:
+  `{ key, content, usage, modelChain, hitCount, createdAt, lastHitAt }`.
+  Prompts are not stored — the hash is sufficient for lookup.
+- **Hit flow**: log `[LLM CACHE HIT]`, fire-and-forget `recordHit`
+  (bumps `hitCount` + `lastHitAt`), return cached `content` + `usage`.
+  Returned `usage` reflects original token counts so caller-side
+  accounting stays honest about what _would_ have been spent.
+- **Miss flow**: log `[LLM CACHE MISS]`, call OpenRouter, write entry on
+  success (fire-and-forget). On a parallel-miss race, last-write-wins;
+  both writers produce semantically equivalent entries.
+- **Failure mode**: cache reads/writes are best-effort. Any I/O error is
+  logged with `[LLM CACHE WRITE FAILED]` and the LLM call proceeds
+  unaffected.
+- **Kill switch**: `Config.LlmCacheEnabled` (boolean, default `true`).
+  Toggle via `bytebell set llm_cache_enabled <true|false>`. When
+  `false`, both reads and writes are skipped.
+- **TTL / eviction**: none in v0. Manual prune is `rm` on the entry
+  file. A future `bytebell cache prune` lands alongside cost-ledger
+  work.
 
 ## Data ownership
 
-None. `askLLM` is a pure function over its arguments + workspace config.
-No memoization, no module-scoped client, no in-memory request log. The
-cost ledger described in [docs/arch.md](../../docs/arch.md) is **not**
-owned by v0 — it lands when `bytebell cost` ships.
+`@bb/llm` owns the decision-cache directory at
+`~/.bytebell/repos/llmdecisions/`. No other package may read or write
+it. The cost ledger described in [docs/arch.md](../../docs/arch.md) is
+**not** owned by v0 — it lands when `bytebell cost` ships.
 
 ## Invariants
 
@@ -112,6 +142,7 @@ owned by v0 — it lands when `bytebell cost` ships.
 - A `askJsonLLM<T>(prompt, schema)` JSON-mode wrapper — caller does
   `JSON.parse` with a try/catch fallback today
 - Per-call prompt logging
+- Cache TTL / automatic eviction — manual `rm` for now
 - Provider abstraction — OpenRouter is the only backend
 
 ## How to extend
