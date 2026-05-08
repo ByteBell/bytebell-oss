@@ -35,14 +35,14 @@ TUI / HTTP client → Express (bytebell-server) → BullMQ (in-process) → Inge
 
 ## Tech Stack
 
-- **Runtime**: Bun ≥ 1.1 (required — uses `bun:sqlite` for the cost ledger)
+- **Runtime**: Bun ≥ 1.1 (required)
 - **Language**: TypeScript (strict, all flags on — see [tsconfig.base.json](tsconfig.base.json))
 - **HTTP server**: Express 5
 - **TUI**: Ink (React for terminals) + commander
 - **Databases**: MongoDB, Neo4j (BYO — user-supplied URIs)
 - **Queue**: BullMQ (Redis-backed, in-process workers)
 - **Cache + State**: Redis (BYO)
-- **Local persistence**: `~/.bytebell/` (config, logs, cost ledger SQLite)
+- **Local persistence**: `~/.bytebell/` (config, logs)
 - **LLM Provider**: **OpenRouter only**
 - **Logging**: Winston (file + stdout)
 - **Secret storage**: plaintext in `~/.bytebell/config.json` (mode `0600`). OS-keychain integration is not implemented.
@@ -122,9 +122,9 @@ Ingestion is dispatched through `IngestionStrategy` (`@bb/ingest-github/Strategy
 - Structured logging via `@bb/logger` (file + stdout, written to `~/.bytebell/logs/`)
 - Request and job IDs propagate across pipelines
 - Health checks for every external system (Mongo / Neo4j / Redis probes)
-- Every LLM call is recorded in the local cost ledger (`cost-ledger.sqlite`)
+- Token usage is persisted in Mongo (`mcp_activity`, `usage_summary`) for the `bytebell stats` command
 
-There is **no outbound telemetry**. The server does not phone home; logs and the cost ledger stay on the user's machine.
+There is **no outbound telemetry**. The server does not phone home; logs stay on the user's machine.
 
 ### 9. Identifiers
 
@@ -132,7 +132,7 @@ There is **no outbound telemetry**. The server does not phone home; logs and the
 - MongoDB `_id` is internal only
 - UUID fields are indexed and unique
 - Job IDs are globally traceable
-- `install_id` (UUID, generated locally on first run, stored at `~/.bytebell/install_id`) is a stable local identifier used by the cost ledger and CLI dashboard. It is never transmitted off the machine.
+- `install_id` (UUID, generated locally on first run, stored at `~/.bytebell/install_id`) is a stable local identifier used by the CLI dashboard. It is never transmitted off the machine.
 
 ---
 
@@ -165,7 +165,7 @@ The `~/.bytebell/` directory is the **single source of truth** for runtime confi
   pid                   running server PID
 ```
 
-A cost ledger at `~/.bytebell/cost-ledger.sqlite` is **planned** but not yet wired — `@bb/llm` currently issues OpenRouter calls without writing per-call rows. There is no OS-keychain integration; `openrouter_api_key` lives in `config.json`.
+There is no OS-keychain integration; `openrouter_api_key` lives in plaintext in `config.json` (mode `0600`).
 
 - `bytebell set <key> <value>` is the only sanctioned write path to `config.json`. Manual edits work but are not advertised.
 
@@ -216,7 +216,7 @@ TypeScript runs with every strict flag enabled (see [tsconfig.base.json](tsconfi
 
 ## Rule of Package Manager
 
-**Bun only.** No `npm` or `yarn` lockfiles in this repo. All scripts must be Bun-compatible. Add dependencies with `bun add`, never by hand-editing `package.json`. The runtime requires Bun on the user machine even when the CLI is installed via npm — `bytebell-server` uses `bun:sqlite`.
+**Bun only.** No `npm` or `yarn` lockfiles in this repo. All scripts must be Bun-compatible. Add dependencies with `bun add`, never by hand-editing `package.json`. The runtime requires Bun on the user machine even when the CLI is installed via npm.
 
 ---
 
@@ -276,7 +276,7 @@ If a piece of infra is missing from `config.json`, the server prints the exact `
 **OpenRouter only.** No direct Anthropic / OpenAI / Gemini / Bedrock keys. All LLM calls flow through `@bb/llm`, which:
 
 - Wraps every OpenRouter call
-- Records cost via `calculateCostFromModelTokens()` into `~/.bytebell/cost-ledger.sqlite`
+- Computes per-call cost via `estimateCostUsd()` against live OpenRouter pricing for the `bytebell stats` view
 
 LLM outputs are probabilistic. They must be:
 
@@ -418,7 +418,7 @@ Design for:
 - **Local-first** — no hidden cloud dependencies; OpenRouter is the only outbound call
 - **Deterministic pipelines** over heuristics
 - **Recoverability** over performance shortcuts
-- **Auditability** — every LLM-derived fact is traceable to its source via the cost ledger and structured logs
+- **Auditability** — every LLM-derived fact is traceable to its source via structured logs and token-usage records in Mongo
 - **Long-term maintainability** over rapid hacks
 
 Prefer:
