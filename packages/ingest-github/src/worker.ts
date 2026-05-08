@@ -8,8 +8,15 @@ import {
   type JobMessage,
   type LocalIngestPayload,
 } from "@bb/types";
-import { getKnowledge, recordProcessingStats, setKnowledgeCommit, setKnowledgeState } from "@bb/mongo";
-import { setKnowledgeStateInGraph, snapshotFilesToVersion } from "@bb/neo4j";
+import {
+  deleteRawFiles,
+  getKnowledge,
+  listRawFileShas,
+  recordProcessingStats,
+  setKnowledgeCommit,
+  setKnowledgeState,
+} from "@bb/mongo";
+import { deleteFileNodes, setKnowledgeStateInGraph, snapshotFilesToVersion } from "@bb/neo4j";
 import { registerWorker } from "@bb/queue";
 import { estimateCostFromBreakdown } from "@bb/llm";
 import { IngestError, KnowledgeNotFoundError } from "@bb/errors";
@@ -46,8 +53,13 @@ async function handleGithubIndex(msg: JobMessage<GithubIndexPayload>): Promise<v
       destDir,
       ...(gitToken !== undefined ? { gitToken } : {}),
     });
-    const result = await STRATEGY.ingest({ knowledgeId, rootDir: destDir });
     const commitHash = await readCommitHash(destDir);
+    if (commitHash === "unknown") {
+      // Without an anchored SHA, future pulls cannot diff against this index —
+      // fail the job rather than land in a state that silently breaks pull idempotency.
+      throw new IngestError(knowledgeId, "could not resolve HEAD commit hash after clone");
+    }
+    const result = await STRATEGY.ingest({ knowledgeId, rootDir: destDir });
     await persistStats({
       knowledgeId,
       repoName: repoNameFromUrl(repoUrl),
@@ -55,11 +67,10 @@ async function handleGithubIndex(msg: JobMessage<GithubIndexPayload>): Promise<v
       result,
       startedAt,
     });
-    // Anchor the commit so subsequent pulls have a previous-commit reference and
-    // can build the FileVersion history chain.
-    if (commitHash !== "unknown") {
-      await setKnowledgeCommit(knowledgeId, commitHash).catch(() => undefined);
-    }
+    // Anchor the commit so subsequent pulls can early-bail and build the
+    // FileVersion history chain. Errors here must surface — silent failure
+    // would leave commitHashes unset and break every future pull.
+    await setKnowledgeCommit(knowledgeId, commitHash);
     await transitionState(knowledgeId, KnowledgeState.Processed);
   } catch (cause: unknown) {
     await transitionState(knowledgeId, KnowledgeState.Failed).catch(() => undefined);
@@ -68,15 +79,16 @@ async function handleGithubIndex(msg: JobMessage<GithubIndexPayload>): Promise<v
 }
 
 /**
- * GITHUB_PULL handler — Phase 1 minimum.
+ * GITHUB_PULL handler — incremental.
  *
- * Re-clones the branch HEAD, runs the same strategy, and updates Mongo's commit
- * history. Before the strategy overwrites the live `:File` nodes, snapshots
- * them into `:FileVersion(commitHash = previous commitId)` so prior state is
- * preserved as graph history.
+ * Re-clones the branch HEAD, diffs each scanned file's content sha against
+ * the previously-indexed `raw_files.sha` map, and runs LLM analysis only on
+ * paths that were added or whose sha changed. Paths that disappeared from
+ * the new tree are deleted from Mongo + Neo4j after being snapshotted into
+ * `:FileVersion(commitHash = previous commitId)`.
  *
  * Idempotency: if the resolved HEAD SHA is already in the recorded
- * `commitHashes`, the worker logs and exits without doing any work.
+ * `commitHashes`, the worker bails before doing any work.
  *
  * The `latestCommitHash` payload field is a hint only — the worker reads the
  * authoritative SHA via `git rev-parse HEAD` after clone.
@@ -107,18 +119,31 @@ async function handleGithubPull(msg: JobMessage<GithubPullPayload>): Promise<voi
 
     const headHash = await readCommitHash(destDir);
     if (headHash !== "unknown" && commitHashes.includes(headHash)) {
-      // Already at this commit — nothing to do.
       await transitionState(knowledgeId, KnowledgeState.Processed);
       return;
     }
 
-    // Preserve prior `:File` state as a `:FileVersion` snapshot before the strategy
-    // overwrites the live nodes. Skipped on the first-ever pull (no previous commit).
+    // Preserve prior `:File` state under `:FileVersion(previousCommitId)` before
+    // the strategy mutates live nodes or we delete vanished ones. Skipped on the
+    // first-ever pull where there is no previous commit anchored.
     if (previousCommitId !== undefined && previousCommitId.length > 0) {
       await snapshotFilesToVersion({ knowledgeId, commitHash: previousCommitId }).catch(() => undefined);
     }
 
-    const result = await STRATEGY.ingest({ knowledgeId, rootDir: destDir });
+    const priorShas = await listRawFileShas(knowledgeId);
+    const result = await STRATEGY.ingest({ knowledgeId, rootDir: destDir, priorShas });
+
+    const deletedPaths: string[] = [];
+    for (const path of priorShas.keys()) {
+      if (!result.seenPaths.has(path)) {
+        deletedPaths.push(path);
+      }
+    }
+    if (deletedPaths.length > 0) {
+      await deleteRawFiles(knowledgeId, deletedPaths);
+      await deleteFileNodes(knowledgeId, deletedPaths);
+    }
+
     await persistStats({
       knowledgeId,
       repoName: repoNameFromUrl(repoUrl),
@@ -127,7 +152,7 @@ async function handleGithubPull(msg: JobMessage<GithubPullPayload>): Promise<voi
       startedAt,
     });
     if (headHash !== "unknown") {
-      await setKnowledgeCommit(knowledgeId, headHash).catch(() => undefined);
+      await setKnowledgeCommit(knowledgeId, headHash);
     }
     await transitionState(knowledgeId, KnowledgeState.Processed);
   } catch (cause: unknown) {
@@ -166,6 +191,9 @@ interface PersistStatsInput {
 
 async function persistStats(input: PersistStatsInput): Promise<void> {
   const estimatedCost = await estimateCostFromBreakdown(input.result.modelTokens);
+  // `totalFiles` is the total count present in the repo (analyzed + skipped),
+  // distinct from `filesAnalyzed` which is the work the LLM actually did.
+  const totalFiles = input.result.filesAnalyzed + input.result.filesSkipped;
   await recordProcessingStats({
     knowledgeId: input.knowledgeId,
     repoName: input.repoName,
@@ -173,7 +201,7 @@ async function persistStats(input: PersistStatsInput): Promise<void> {
     modelTokens: input.result.modelTokens,
     estimatedCost,
     totalBatches: 1,
-    totalFiles: input.result.filesAnalyzed,
+    totalFiles,
     totalFolders: 0,
     filesAnalyzed: input.result.filesAnalyzed,
     processingTimeMs: Date.now() - input.startedAt,

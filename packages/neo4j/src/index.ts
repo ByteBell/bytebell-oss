@@ -6,7 +6,7 @@ export { ensureKnowledgeIndexes } from "./indexes.ts";
 
 export { upsertKnowledgeNode, setKnowledgeStateInGraph, deleteKnowledgeGraph } from "./knowledge.ts";
 
-export { upsertFileNode } from "./files.ts";
+export { upsertFileNode, deleteFileNodes } from "./files.ts";
 export type { UpsertFileNodeInput } from "./files.ts";
 
 export { snapshotFilesToVersion } from "./fileVersions.ts";

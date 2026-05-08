@@ -28,13 +28,18 @@ package-level contract; this file documents how the source tree is split.
 "status.state": state, updatedAt: <now> } })`, and throws
   `KnowledgeNotFoundError` on `matchedCount === 0`. Called by `@bb/queue`
   publishers on enqueue.
-- **[raw.ts](raw.ts)** — domain CRUD helper:
-  `upsertRawFile(doc)`. Defines the `FileAnalysis` and `RawFileDoc`
-  interfaces (package-local until promotion to `@bb/types`). Uses
-  `_getDb()` to access `Collections.Raw`, runs `updateOne({ knowledgeId,
-relativePath }, { $set: <doc + updatedAt> }, { upsert: true })`. No
-  thrown error on missing match — upsert always succeeds. Called by
-  `@bb/ingest-github`'s worker for every scanned file.
+- **[raw.ts](raw.ts)** — domain CRUD helpers for `Collections.Raw`. Defines
+  the `FileAnalysis` and `RawFileDoc` interfaces (package-local until
+  promotion to `@bb/types`). Exports:
+  - `upsertRawFile(doc)` — `updateOne({ knowledgeId, relativePath }, { $set:
+<doc + updatedAt> }, { upsert: true })`. Called by `@bb/ingest-github`'s
+    worker for every scanned (added or modified) file.
+  - `listRawFileShas(knowledgeId)` — projection-only read returning a
+    `Map<relativePath, sha>` of the previously-indexed tree. Consumed by the
+    pull worker to diff the new tree without needing git history.
+  - `deleteRawFiles(knowledgeId, relativePaths)` — `deleteMany` with `$in`;
+    no-op on empty input. Used by the pull worker to drop rows for files
+    that vanished between commits.
 
 ## Module dependency graph
 

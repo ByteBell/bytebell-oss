@@ -11,30 +11,45 @@ split.
   `IngestionStrategy` / `IngestionContext` types, and
   `BasicFileAnalysisStrategy`. Anything else is internal.
 - **[Strategy.ts](Strategy.ts)** — the extension-point interface.
-  Defines `IngestionContext { knowledgeId, rootDir }` and
-  `IngestionStrategy { name, ingest(ctx) }`. Future contributors
-  implement this to add alternative strategies (flat-folder summaries,
-  semantic chunking, etc.).
+  Defines `IngestionContext { knowledgeId, rootDir, priorShas? }` and
+  `IngestionStrategy { name, ingest(ctx) }`. `priorShas` is the
+  `relativePath → sha` map of the previously-indexed tree; absent on
+  full-index runs, populated by the pull worker for diff mode. The
+  result includes `filesAnalyzed` (LLM ran), `filesSkipped` (sha
+  matched, work skipped), and `seenPaths` (every path the scanner
+  yielded — used by callers to compute deletions).
 - **[BasicFileAnalysisStrategy.ts](BasicFileAnalysisStrategy.ts)** —
-  the v1 default strategy. Iterates `walkRepo(rootDir)`; per file,
-  calls `analyzeFile(relativePath, content)` for the 8-field LLM
-  analysis (small-file path) or chunked + condensed analysis
-  (big-file path, transparent to the strategy), computes a sha-256,
-  then dual-writes:
-  - `upsertRawFile` to Mongo's `raw` collection
-  - `upsertFileNode` to Neo4j (creates `:File` + clears stale
-    `:HAS_KEYWORD / :HAS_CLASS / :HAS_FUNCTION / :HAS_IMPORT_INTERNAL /
-:HAS_IMPORT_EXTERNAL` rels +
-    re-attaches fresh ones).
+  the v1 default strategy. Two modes share the same per-file pipeline
+  (`analyzeFile → upsertRawFile → upsertFileNode`):
+  - **Full mode** (`priorShas === undefined`): single walk; analyses
+    every file. Used by initial index and local ingest.
+  - **Diff mode** (`priorShas` supplied): walk once, compute each
+    file's content sha, eagerly skip when `priorShas.get(path) === sha`,
+    buffer the changed subset, then seed
+    `updateKnowledgeProgress(0, changed.length)` so the CLI progress
+    bar denominates against actual work and only run analyse + upsert
+    on the changed subset.
 - **[worker.ts](worker.ts)** — BullMQ handlers and the strategy
   selector. Module-scoped `STRATEGY: IngestionStrategy = new
 BasicFileAnalysisStrategy()` — swap this line to switch strategies.
-  Two handlers compose the strategy:
+  Three handlers compose the strategy:
   - `handleGithubIndex(msg)` — `transitionState(Processing)` →
-    `ensureReposRoot` + `gitClone` → `STRATEGY.ingest` →
+    `ensureReposRoot` + `gitClone` → `readCommitHash` (hard error on
+    `"unknown"`; future pulls cannot diff without a SHA anchor) →
+    `STRATEGY.ingest` (full mode) → `persistStats` →
+    `setKnowledgeCommit` (errors bubble — silent failure here would
+    leave `commitHashes` unset and break every future pull) →
     `transitionState(Processed)`.
+  - `handleGithubPull(msg)` — `getKnowledge` → `gitClone` →
+    `readCommitHash`; bails when HEAD is already in `commitHashes`.
+    Otherwise: snapshots prior `:File` set into
+    `:FileVersion(previousCommitId)`, builds `priorShas` via
+    `listRawFileShas`, runs `STRATEGY.ingest` in diff mode, computes
+    `deletedPaths = priorShas.keys() − result.seenPaths` and calls
+    `deleteRawFiles` + `deleteFileNodes` for them, then
+    `setKnowledgeCommit` + `transitionState(Processed)`.
   - `handleLocalIngest(msg)` — `transitionState(Processing)` →
-    `STRATEGY.ingest` (files already on disk) →
+    `STRATEGY.ingest` (full mode; files already on disk) →
     `transitionState(Processed)`.
 
   `transitionState` writes to both Mongo (`setKnowledgeState`) and

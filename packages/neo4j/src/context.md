@@ -58,6 +58,13 @@ branch / repoName / state / createdAt / updatedAt` (createdAt only on
   per group). Skipped entirely if the corresponding analysis array is
   empty.
 
+  Also exports `deleteFileNodes(knowledgeId, relativePaths)` — `MATCH`
+  - `DETACH DELETE` over the live `:File` set for the given paths. No-op
+    on empty input. Used by the pull worker to remove files that vanished
+    between commits; callers that need history must call
+    `snapshotFilesToVersion` first (this only touches `:File`, never
+    `:FileVersion`).
+
 ## Module dependency graph
 
 ```

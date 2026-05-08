@@ -84,6 +84,27 @@ export interface UpsertFileNodeInput {
   analysis: FileAnalysis;
 }
 
+const DELETE_FILES = `
+MATCH (f:File {knowledgeId: $knowledgeId})
+WHERE f.relativePath IN $relativePaths
+DETACH DELETE f
+`;
+
+/**
+ * Removes the live `:File` nodes for `relativePaths` under `knowledgeId`,
+ * along with their relationships. Callers that need history (e.g. the pull
+ * worker) must call `snapshotFilesToVersion` first; this only touches the
+ * live `:File` set, never `:FileVersion`.
+ *
+ * No-op when `relativePaths` is empty.
+ */
+export async function deleteFileNodes(knowledgeId: string, relativePaths: string[]): Promise<void> {
+  if (relativePaths.length === 0) {
+    return;
+  }
+  await _runCypher(DELETE_FILES, { knowledgeId, relativePaths });
+}
+
 export async function upsertFileNode(input: UpsertFileNodeInput): Promise<void> {
   const params = { knowledgeId: input.knowledgeId, relativePath: input.relativePath };
   await _runCypher(UPSERT_FILE, {
