@@ -229,21 +229,9 @@ Settings live in `~/.bytebell/config.json` and are written exclusively by `byteb
 
 If a piece of infra is missing, the server prints the exact `bytebell set …` command you need and refuses to boot — it never silently reads `process.env`.
 
-## Where things live
-
-- `~/.bytebell/config.json` — runtime config (URIs, OpenRouter key, log level, …), mode `0600`
-- `~/.bytebell/repos/<knowledgeId>/…` — cloned source trees for every indexed repo
-- `~/.bytebell/logs/server-YYYY-MM-DD.log` — daily server log
-- `~/.bytebell/logs/cli-YYYY-MM-DD.log` — daily CLI log
-- `~/.bytebell/pid` — running server PID (unlinked on graceful shutdown)
-- `~/.bytebell/install_id` — local-only UUID, never transmitted
-- `infra/docker/.env` — generated; contains the Neo4j password (gitignored)
-
-## Project layout
-
-The workspace is organised as 13 `@bb/*` packages in tier order — kernel (`@bb/types`, `@bb/errors`) → infrastructure (`@bb/config`, `@bb/logger`, `@bb/mongo`, `@bb/neo4j`, `@bb/redis`) → cross-cutting (`@bb/llm`) → strategy (`@bb/queue`) → domain (`@bb/mcp`, `@bb/ingest-github`) → binaries (`@bb/server`, `@bb/cli`). Imports flow downward only; the two binaries communicate over HTTP and never import each other (enforced by an ESLint boundary rule). Each package has a `context.md` describing its contract. See [docs/arch.md](docs/arch.md) for the full tier map.
-
 ## Why this design — research grounding
+
+> Comparing Bytebell to PageIndex, GitNexus, GraphRAG, Sourcegraph, or Augment Code? See **[comparison.md](comparison.md)** for a side-by-side feature table and pros / cons of each.
 
 Bytebell's shape — _build a code graph at ingest time, enrich every node with LLM-derived structured semantics, then serve retrieval against the joined surface_ — tracks a converging body of recent work showing that purely structural retrieval (AST / call-graph) and purely semantic retrieval (embeddings) each leave large performance on the table, and that combining them at indexing time unlocks the gains.
 
