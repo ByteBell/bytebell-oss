@@ -25,7 +25,6 @@ The rest of this doc is one feature table across all six tools, then a short pro
 | Diff-aware re-indexing         | Per-file content SHA-256 (commit SHA for early-bail; LLM cost ∝ churn) | Full re-parse                    | Git-diff impact + auto re-index hook  | Full re-extract                                        | Incremental indexing             | Continuous (managed)            |
 | Outbound network calls         | OpenRouter only; binds 127.0.0.1                                       | Cloud agent option               | None (zero-server)                    | None (offline lib) + LLM provider                      | Code snippets ≤28 KB → cloud LLM | Source code → SaaS              |
 | Multi-tenant / auth            | None — `orgId="local"`, no auth                                        | None (lib)                       | None (single-user)                    | None (lib)                                             | SSO / SCIM / RBAC                | Org accounts                    |
-| License                        | AGPL-3.0 + non-commercial clause                                       | MIT                              | Apache-2.0                            | MIT                                                    | Proprietary (Cody fair-source)   | Proprietary (SaaS)              |
 
 ## Sources
 
