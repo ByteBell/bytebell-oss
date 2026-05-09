@@ -19,7 +19,7 @@ export function buildConfigRoute(): Router {
     try {
       const updates = req.body as Record<string, unknown>;
       for (const [key, value] of Object.entries(updates)) {
-        setConfigValue(key as Config, value as ConfigValue);
+        setConfigValue(key as Config, value as ConfigValue<Config>);
       }
       res.json({ ok: true });
     } catch (err: unknown) {
