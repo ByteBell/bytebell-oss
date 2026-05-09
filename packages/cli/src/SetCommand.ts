@@ -1,10 +1,12 @@
 import { Command } from "commander";
 import React from "react";
+import { exec } from "node:child_process";
 import { render } from "ink";
-import { HINTS } from "@bb/config";
+import { HINTS, getConfigValue } from "@bb/config";
+import { Config } from "@bb/types";
 import { KEY_MAP, validKeysList } from "./keyMap.ts";
 import { SetupForm } from "./SetupForm.tsx";
-import { error, list, success } from "./output.ts";
+import { error, list, success, info } from "./output.ts";
 
 export function buildSetCommand(): Command {
   const cmd = new Command("set");
@@ -19,6 +21,10 @@ export function buildSetCommand(): Command {
 async function runSet(key: string | undefined, value: string | undefined): Promise<void> {
   if (key === undefined && value === undefined) {
     await runInteractive();
+    return;
+  }
+  if (key === "config" && value === undefined) {
+    await openWebEditor();
     return;
   }
   if (key === undefined || value === undefined) {
@@ -59,5 +65,23 @@ async function runInteractive(): Promise<void> {
     };
     const { waitUntilExit } = render(React.createElement(SetupForm, { onDone }));
     waitUntilExit().catch(() => undefined);
+  });
+}
+
+async function openWebEditor(): Promise<void> {
+  const port = getConfigValue(Config.ServerPort);
+  const url = `http://127.0.0.1:${port}/config`;
+
+  info(`Opening configuration editor in browser...`);
+  info(url);
+
+  const platform = process.platform;
+  const command =
+    platform === "darwin" ? `open "${url}"` : platform === "win32" ? `start "${url}"` : `xdg-open "${url}"`;
+
+  exec(command, (err) => {
+    if (err) {
+      error(`Failed to open browser. Please visit the URL manually.`);
+    }
   });
 }

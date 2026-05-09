@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
-import type { ModelTokenBreakdown } from "@bb/types";
+import { Config, type ModelTokenBreakdown } from "@bb/types";
+import { getConfigValue } from "@bb/config";
 import { updateKnowledgeProgress, upsertRawFile } from "@bb/mongo";
 import { upsertFileNode } from "@bb/neo4j";
 import { countFiles, walkRepo, type ScannedFile } from "./scan.ts";
 import { analyzeFile } from "./analyze.ts";
 import type { IngestionContext, IngestionResult, IngestionStrategy } from "./Strategy.ts";
+import { runInPool } from "./concurrency.ts";
 
 export class BasicFileAnalysisStrategy implements IngestionStrategy {
   readonly name = "basic-file-analysis";
@@ -17,12 +19,14 @@ export class BasicFileAnalysisStrategy implements IngestionStrategy {
       const totalFiles = await countFiles(rootDir);
       await updateKnowledgeProgress(knowledgeId, 0, totalFiles);
       let filesAnalyzed = 0;
-      for await (const file of walkRepo(rootDir)) {
+      const concurrency = getConfigValue(Config.ConcurrencyGithub);
+
+      await runInPool(concurrency, walkRepo(rootDir), async (file) => {
         seenPaths.add(file.relativePath);
         await this.analyzeAndPersist(knowledgeId, file, modelTokens);
         filesAnalyzed += 1;
         await updateKnowledgeProgress(knowledgeId, filesAnalyzed);
-      }
+      });
       return { filesAnalyzed, filesSkipped: 0, seenPaths, modelTokens };
     }
 
@@ -33,7 +37,7 @@ export class BasicFileAnalysisStrategy implements IngestionStrategy {
     let filesSkipped = 0;
     for await (const file of walkRepo(rootDir)) {
       seenPaths.add(file.relativePath);
-      const sha = sha256(file.content);
+      const sha = await sha256(file.content);
       if (priorShas.get(file.relativePath) === sha) {
         filesSkipped += 1;
         continue;
@@ -43,11 +47,13 @@ export class BasicFileAnalysisStrategy implements IngestionStrategy {
 
     await updateKnowledgeProgress(knowledgeId, 0, changed.length);
     let filesAnalyzed = 0;
-    for (const { file, sha } of changed) {
+    const concurrency = getConfigValue(Config.ConcurrencyGithub);
+
+    await runInPool(concurrency, changed, async ({ file, sha }) => {
       await this.analyzeAndPersist(knowledgeId, file, modelTokens, sha);
       filesAnalyzed += 1;
       await updateKnowledgeProgress(knowledgeId, filesAnalyzed);
-    }
+    });
     return { filesAnalyzed, filesSkipped, seenPaths, modelTokens };
   }
 
@@ -58,7 +64,7 @@ export class BasicFileAnalysisStrategy implements IngestionStrategy {
     precomputedSha?: string,
   ): Promise<void> {
     const { language, analysis, usage } = await analyzeFile(file.relativePath, file.content);
-    const sha = precomputedSha ?? sha256(file.content);
+    const sha = precomputedSha ?? (await sha256(file.content));
     await upsertRawFile({
       knowledgeId,
       relativePath: file.relativePath,
@@ -92,6 +98,6 @@ function accumulate(totals: ModelTokenBreakdown, model: string, inputTokens: num
   existing.outputTokens += outputTokens;
 }
 
-function sha256(content: string): string {
+async function sha256(content: string): Promise<string> {
   return createHash("sha256").update(content).digest("hex");
 }

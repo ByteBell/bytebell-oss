@@ -8,6 +8,7 @@ import { buildReposRoute } from "./reposRoute.ts";
 import { buildDeleteRoute } from "./deleteRoute.ts";
 import { buildStatsRoute } from "./statsRoute.ts";
 import { buildMcpStatsRoute } from "./mcpStatsRoute.ts";
+import { buildConfigRoute } from "./config/configRoute.ts";
 
 export function registerRoutes(app: Application): void {
   app.use(buildHealthRoute());
@@ -18,5 +19,6 @@ export function registerRoutes(app: Application): void {
   app.use(buildDeleteRoute());
   app.use(buildStatsRoute());
   app.use(buildMcpStatsRoute());
+  app.use(buildConfigRoute());
   mountMcp(app);
 }

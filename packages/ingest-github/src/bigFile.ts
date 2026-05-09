@@ -1,5 +1,7 @@
 import { askLLM, type AskLlmUsage } from "@bb/llm";
 import { logger } from "@bb/logger";
+import { Config } from "@bb/types";
+import { getConfigValue } from "@bb/config";
 import type { FileAnalysis } from "@bb/mongo";
 import {
   CONDENSE_CONTEXT_LIMIT,
@@ -13,6 +15,7 @@ import {
   tokenLen,
   tryParse,
 } from "./analysisShared.ts";
+import { mapPool } from "./concurrency.ts";
 
 export interface AnalyzedFile {
   language: string;
@@ -35,12 +38,11 @@ export async function analyzeBigFile(relativePath: string, content: string): Pro
   const chunks = splitIntoChunks(content, MAX_TOKENS_PER_CHUNK);
   logger.info(`analyzeBigFile: ${relativePath} split into ${chunks.length} chunks`);
   const usage: UsageAccumulator = { model: null, inputTokens: 0, outputTokens: 0 };
-  const perChunk: ChunkResult[] = [];
+  const concurrency = getConfigValue(Config.ConcurrencyGithub);
 
-  for (const [index, chunk] of chunks.entries()) {
-    const result = await analyzeChunk(relativePath, index, chunks.length, chunk, usage);
-    perChunk.push(result);
-  }
+  const perChunk = await mapPool(concurrency, chunks, async (chunk, index) => {
+    return await analyzeChunk(relativePath, index, chunks.length, chunk, usage);
+  });
 
   if (perChunk.length <= SMALL_FILE_DEDUP_THRESHOLD) {
     logger.info(`analyzeBigFile: ${relativePath} merging ${perChunk.length} chunks via deterministic dedup`);
@@ -132,14 +134,15 @@ async function condenseRecursively(
   logger.info(
     `condenseRecursively: ${relativePath} depth=${depth} items=${items.length} promptTokens=${promptTokens} > ${CONDENSE_CONTEXT_LIMIT} → ${batches.length} batches`,
   );
-  const batchResults: ChunkResult[] = [];
-  for (const [batchIndex, batch] of batches.entries()) {
+  const concurrency = getConfigValue(Config.ConcurrencyGithub);
+
+  const batchResults = await mapPool(concurrency, batches, async (batch, batchIndex) => {
     logger.info(
       `condenseRecursively: ${relativePath} depth=${depth} batch ${batchIndex + 1}/${batches.length} items=${batch.length}`,
     );
     const batchPrompt = buildCondensePrompt(relativePath, batch);
-    batchResults.push(await condenseOne(batchPrompt, batch, usage));
-  }
+    return await condenseOne(batchPrompt, batch, usage);
+  });
   return await condenseRecursively(relativePath, batchResults, depth + 1, usage);
 }
 

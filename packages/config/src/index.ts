@@ -1,4 +1,4 @@
-export { LOG_LEVELS, HINTS } from "./schema.ts";
+export { LOG_LEVELS, HINTS, REQUIRED_KEYS } from "./schema.ts";
 export type { BytebellConfig, ConfigValue, ConfigValueMap, LogLevel } from "./schema.ts";
 
 export { loadConfig, getConfigValue, isConfigComplete } from "./loader.ts";
