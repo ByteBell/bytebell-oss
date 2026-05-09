@@ -8,15 +8,16 @@ import { error, list, success } from "./output.ts";
 
 export function buildSetCommand(): Command {
   const cmd = new Command("set");
+
   cmd
-    .description("Write a value to ~/.bytebell/config.json. With no args, opens the interactive setup form.")
-    .argument("[key]", "config key (e.g. mongo, neo4j, redis, port)")
-    .argument("[value]", "value to write")
+    .argument("[key]", `Configuration key to set (${validKeysList()})`)
+    .argument("[value]", "New value for the key")
     .action(runSet);
+
   return cmd;
 }
 
-async function runSet(key: string | undefined, value: string | undefined): Promise<void> {
+async function runSet(key?: string, value?: string): Promise<void> {
   if (key === undefined && value === undefined) {
     await runInteractive();
     return;
@@ -26,37 +27,32 @@ async function runSet(key: string | undefined, value: string | undefined): Promi
     process.exitCode = 1;
     return;
   }
-  runHeadless(key, value);
-}
 
-function runHeadless(key: string, value: string): void {
-  const entry = KEY_MAP[key];
-  if (entry === undefined) {
-    error(`Unknown key "${key}"`);
-    list(`Valid keys:`, validKeysList());
+  const mappedKey = KEY_MAP[key];
+  if (!mappedKey) {
+    error(`Invalid key: ${key}`);
+    list("Valid keys:", Object.keys(KEY_MAP));
     process.exitCode = 1;
     return;
   }
+
   try {
-    entry.setter(value);
-  } catch (cause: unknown) {
-    const msg = cause instanceof Error ? cause.message : String(cause);
-    error(msg, HINTS[entry.configKey]);
+    mappedKey.setter(value);
+    success(`Set ${key} to ${value}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error(`Failed to set ${key}: ${message}`);
+    const hint = HINTS[mappedKey.configKey];
+    if (hint) {
+      list("Hint:", [hint]);
+    }
     process.exitCode = 1;
-    return;
   }
-  const display = entry.redact ? "<redacted>" : value;
-  success(`Set ${entry.configKey} = ${display}`);
 }
 
 async function runInteractive(): Promise<void> {
-  await new Promise<void>((resolve) => {
-    const onDone = (result: { saved: boolean; error?: string }): void => {
-      if (result.saved) {
-        success("Configuration saved.");
-      }
-      resolve();
-    };
+  return new Promise((resolve) => {
+    const onDone = () => resolve();
     const { waitUntilExit } = render(React.createElement(SetupForm, { onDone }));
     waitUntilExit().catch(() => undefined);
   });

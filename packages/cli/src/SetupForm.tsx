@@ -51,6 +51,12 @@ const ROWS: Row[] = [
     cliKey: "port",
     validate: (s) => (/^\d+$/u.test(s) && Number(s) > 0 && Number(s) <= 65535 ? null : "expected integer 1-65535"),
   },
+  {
+    id: "concurrency-github",
+    label: "GitHub Concurrency",
+    cliKey: "concurrency.github",
+    validate: (s) => (/^\d+$/u.test(s) && Number(s) > 0 ? null : "expected positive integer"),
+  },
 ];
 
 function loadInitial(): Record<string, string> {
@@ -61,6 +67,7 @@ function loadInitial(): Record<string, string> {
     "neo4j-password": getConfigValue(Config.Neo4jPassword),
     redis: getConfigValue(Config.RedisUrl),
     port: String(getConfigValue(Config.ServerPort)),
+    "concurrency-github": String(getConfigValue(Config.ConcurrencyGithub)),
   };
 }
 
