@@ -1,3 +1,5 @@
+import React from "react";
+import { render } from "ink";
 import { Command } from "commander";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
@@ -6,6 +8,8 @@ import { getJson, HttpClientError, postJson } from "./httpClient.ts";
 import { createProgressBar, createSpinner, error, info, type ProgressBar } from "./output.ts";
 import { startLogTailer, type LogTailer } from "./logTailer.ts";
 import { promptRepoSelector } from "./repoSelectorPrompt.ts";
+import { promptCommitSelector } from "./commitSelectorPrompt.ts";
+import { PullModeSelector, type PullModeSelectorResult } from "./PullModeSelector.tsx";
 
 interface PullResponse {
   knowledgeId: string;
@@ -54,10 +58,36 @@ async function runPull(
     }
 
     // No id supplied → interactive picker, github-only (pull doesn't apply to local repos).
-    const targetIds = knowledgeId !== undefined && knowledgeId.length > 0 ? [knowledgeId] : await pickKnowledgeIds();
-    if (targetIds.length === 0) {
+    const picks =
+      knowledgeId !== undefined && knowledgeId.length > 0 ? [{ knowledgeId, label: knowledgeId }] : await pickRepos();
+    if (picks.length === 0) {
       info("No repo selected.");
       return;
+    }
+
+    // If a single repo was picked and the caller did not pre-supply --commit,
+    // give the user the latest-vs-specific choice. For multi-repo selections
+    // we apply the same target (or HEAD) to every repo — letting the user pick
+    // a different commit per repo would require a sub-prompt per repo which
+    // is not worth the complexity for the rare multi-pull case.
+    let chosenTargetCommit: string | undefined = options.commit;
+    if (chosenTargetCommit === undefined && picks.length === 1) {
+      const only = picks[0];
+      if (only !== undefined) {
+        const mode = await promptPullMode(only.label);
+        if (mode === null) {
+          info("Cancelled.");
+          return;
+        }
+        if (mode === "specific") {
+          const commit = await promptCommitSelector({ knowledgeId: only.knowledgeId });
+          if (commit === null) {
+            info("Cancelled.");
+            return;
+          }
+          chosenTargetCommit = commit.hash;
+        }
+      }
     }
 
     if (options.verbose === true) {
@@ -67,10 +97,10 @@ async function runPull(
     // Enqueue all pulls upfront — BullMQ runs workers concurrently in the
     // server process, so there's no benefit to serialising the HTTP submits.
     const enqueueResults = await Promise.all(
-      targetIds.map(async (targetId) => {
+      picks.map(async ({ knowledgeId: targetId }) => {
         const body: Record<string, string> = { knowledgeId: targetId };
-        if (options.commit !== undefined) {
-          body["latestCommitHash"] = options.commit;
+        if (chosenTargetCommit !== undefined) {
+          body["targetCommitHash"] = chosenTargetCommit;
         }
         if (options.token !== undefined) {
           body["gitToken"] = options.token;
@@ -106,13 +136,40 @@ async function runPull(
   }
 }
 
-async function pickKnowledgeIds(): Promise<string[]> {
+interface RepoPick {
+  knowledgeId: string;
+  label: string;
+}
+
+async function pickRepos(): Promise<RepoPick[]> {
   const result = await promptRepoSelector({
     title: "Select repos to pull",
     filterKind: "github",
     emptyMessage: "No indexed GitHub repos. Run `bytebell index <url>` first.",
   });
-  return result === null ? [] : result.picked.map((p) => p.item.knowledgeId);
+  if (result === null) {
+    return [];
+  }
+  return result.picked.map((p) => ({ knowledgeId: p.item.knowledgeId, label: p.item.label }));
+}
+
+async function promptPullMode(repoLabel: string): Promise<"latest" | "specific" | null> {
+  return new Promise<"latest" | "specific" | null>((resolve) => {
+    const onDone = (result: PullModeSelectorResult): void => {
+      if (result.mode !== undefined) {
+        resolve(result.mode);
+        return;
+      }
+      resolve(null);
+    };
+    const { waitUntilExit } = render(
+      React.createElement(PullModeSelector, {
+        repoLabel,
+        onDone,
+      }),
+    );
+    waitUntilExit().catch(() => undefined);
+  });
 }
 
 async function pollJobStatus(knowledgeId: string, jobId: string): Promise<void> {

@@ -22,11 +22,13 @@ export interface GithubIndexPayload {
 export interface GithubPullPayload {
   knowledgeId: string;
   /**
-   * Optional anchor for the commit the caller already resolved (CLI / route may pre-fetch HEAD).
-   * The worker reads `git rev-parse HEAD` after clone regardless, but this field lets early
-   * idempotency checks short-circuit before enqueue when the caller already knows HEAD.
+   * Optional commit to re-index the knowledge to. Must be a 40-character hex SHA
+   * and must be reachable from `origin/<knowledge.branch>`. When omitted, the
+   * worker resolves the branch's HEAD after clone. Direction does not matter —
+   * the orchestrator handles forward, backward, and sideways targets through
+   * the same diff machinery. See `docs/pull-plan.md`.
    */
-  latestCommitHash?: string;
+  targetCommitHash?: string;
   gitToken?: string;
 }
 

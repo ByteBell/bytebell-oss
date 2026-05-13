@@ -3,9 +3,13 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
+    "baseUrl": ".",
     "paths": {
       "src/*": ["./src/*"]
-    }
+    },
+    "ignoreDeprecations": "5.0",
+    "noEmit": false,
+    "emitDeclarationOnly": true
   },
   "include": ["src/**/*", "src/**/*.json"]
 }

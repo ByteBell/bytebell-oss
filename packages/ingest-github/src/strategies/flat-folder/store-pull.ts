@@ -1,0 +1,211 @@
+import { readFile } from "node:fs/promises";
+import { logger } from "@bb/logger";
+import {
+  deleteFileNodes,
+  ensureFlatFolderIndexes,
+  upsertFileNode,
+  upsertFolderNode,
+  upsertRepoNode,
+  type NodeScope,
+} from "@bb/neo4j";
+import { deleteRawFiles } from "@bb/mongo";
+import type { GithubIndexPayload } from "@bb/types";
+import type { MetaPaths } from "src/types/meta-paths.ts";
+import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
+import { throwIfCancelled } from "src/pipeline/cancellation.ts";
+import type { DiffResult } from "src/pipeline/git-diff.ts";
+import { readCondensed } from "src/strategies/flat-folder/big-file/storage.ts";
+import { iterateFolderSummaries } from "src/strategies/flat-folder/folder-summary.ts";
+import { directFolderOf } from "src/strategies/flat-folder/folder-path.ts";
+import { languageFromPath } from "src/adapters/llm-file-analyzer.ts";
+import type { FolderSummary, RepoSummary, RepoSummaryEnvelope } from "src/strategies/flat-folder/types.ts";
+
+export interface StorePullInput {
+  scope: NodeScope;
+  payload: GithubIndexPayload;
+  branch: string;
+  metaPaths: MetaPaths;
+  diff: DiffResult;
+  affectedFolders: Set<string>;
+}
+
+export interface StorePullResult {
+  filesUpserted: number;
+  filesDeleted: number;
+  foldersUpserted: number;
+  repoUpserted: boolean;
+}
+
+/**
+ * Pull-time graph store. Mirrors the structure of `storeFlatAnalysis` but
+ * applies only the changes the diff specified:
+ *
+ * 1. Delete `:File` + Mongo rows for deleted + renamed-from paths.
+ * 2. Upsert `:File` nodes for added + modified + renamed-to paths.
+ * 3. Upsert affected `:Folder` nodes from the freshly-written folder
+ *    summaries on disk.
+ * 4. Upsert the `:Repo` node with the new repo summary.
+ *
+ * Untouched paths and unaffected folders are not modified.
+ */
+export async function storePullAnalysis(input: StorePullInput): Promise<StorePullResult> {
+  throwIfCancelled(input.scope.knowledgeId);
+  await ensureFlatFolderIndexes();
+
+  let filesUpserted = 0;
+  let filesDeleted = 0;
+  let foldersUpserted = 0;
+
+  const deletedPaths: string[] = [...input.diff.deleted, ...input.diff.renamed.map((r) => r.oldPath)];
+  if (deletedPaths.length > 0) {
+    await deleteFileNodes(input.scope.knowledgeId, deletedPaths);
+    await deleteRawFiles(input.scope.knowledgeId, deletedPaths);
+    filesDeleted = deletedPaths.length;
+  }
+
+  const repoSummary = await readRepoSummary(input.metaPaths);
+  let repoUpserted = false;
+  if (repoSummary !== null) {
+    await upsertRepoNode({
+      scope: input.scope,
+      repoUrl: input.payload.repoUrl,
+      branch: input.branch,
+      summary: {
+        purpose: repoSummary.purpose,
+        summary: repoSummary.summary,
+        keywords: repoSummary.keywords,
+        architecture: repoSummary.architecture,
+        dataFlow: repoSummary.dataFlow,
+        majorSubsystems: repoSummary.majorSubsystems,
+        keyPatterns: repoSummary.keyPatterns,
+      },
+    });
+    repoUpserted = true;
+  } else {
+    logger.warn(`pull-store: no repo summary on disk; skipping :Repo upsert`);
+  }
+
+  const folderPaths = new Set<string>();
+  for await (const folder of iterateFolderSummaries(input.metaPaths)) {
+    throwIfCancelled(input.scope.knowledgeId);
+    if (!input.affectedFolders.has(folder.folderPath)) {
+      continue;
+    }
+    await upsertFolderNode({
+      scope: input.scope,
+      folderPath: folder.folderPath,
+      summary: shapeFolderPayload(folder),
+    });
+    folderPaths.add(folder.folderPath);
+    foldersUpserted += 1;
+  }
+
+  const upsertPaths: string[] = [
+    ...input.diff.added,
+    ...input.diff.modified,
+    ...input.diff.renamed.map((r) => r.newPath),
+  ];
+  const seen = new Set<string>();
+  for (const relativePath of upsertPaths) {
+    if (seen.has(relativePath)) {
+      continue;
+    }
+    seen.add(relativePath);
+    throwIfCancelled(input.scope.knowledgeId);
+
+    const condensed = await readCondensed(input.metaPaths, relativePath);
+    if (condensed === null) {
+      logger.warn(`pull-store: condensed analysis missing for ${relativePath}; skipping file upsert`);
+      continue;
+    }
+
+    const folderPath = directFolderOf(relativePath);
+    if (!folderPaths.has(folderPath)) {
+      await upsertFolderNode({
+        scope: input.scope,
+        folderPath,
+        summary: emptyFolderPayload(),
+      });
+      folderPaths.add(folderPath);
+      foldersUpserted += 1;
+    }
+
+    await upsertFileNodeFromCondensed(input.scope, folderPath, condensed);
+    filesUpserted += 1;
+  }
+
+  logger.info(
+    `pull-store done: filesUpserted=${filesUpserted} filesDeleted=${filesDeleted} foldersUpserted=${foldersUpserted} repoUpserted=${repoUpserted}`,
+  );
+  return { filesUpserted, filesDeleted, foldersUpserted, repoUpserted };
+}
+
+async function upsertFileNodeFromCondensed(
+  scope: NodeScope,
+  folderPath: string,
+  file: CondensedFileAnalysis,
+): Promise<void> {
+  await upsertFileNode({
+    orgId: scope.orgId,
+    knowledgeId: scope.knowledgeId,
+    repoId: scope.repoId,
+    relativePath: file.relativePath,
+    folderPath,
+    language: file.language.length > 0 ? file.language : languageFromPath(file.relativePath),
+    sha: file.sha256,
+    sizeBytes: file.sizeBytes,
+    analysis: file.analysis,
+    isBigFile: file.isBigFile,
+    totalChunks: file.totalChunks,
+    totalTokenCount: file.totalTokenCount,
+  });
+}
+
+function shapeFolderPayload(folder: FolderSummary): {
+  purpose: string;
+  summary: string;
+  keywords: string[];
+  classes: string[];
+  functions: string[];
+  importsInternal: string[];
+  importsExternal: string[];
+  dependencyGraph: string;
+} {
+  return {
+    purpose: folder.purpose,
+    summary: folder.summary,
+    keywords: folder.keywords,
+    classes: folder.classes,
+    functions: folder.functions,
+    importsInternal: folder.importsInternal,
+    importsExternal: folder.importsExternal,
+    dependencyGraph: folder.dependencyGraph,
+  };
+}
+
+function emptyFolderPayload(): ReturnType<typeof shapeFolderPayload> {
+  return {
+    purpose: "",
+    summary: "",
+    keywords: [],
+    classes: [],
+    functions: [],
+    importsInternal: [],
+    importsExternal: [],
+    dependencyGraph: "",
+  };
+}
+
+async function readRepoSummary(metaPaths: MetaPaths): Promise<RepoSummary | null> {
+  try {
+    const raw = await readFile(metaPaths.repoSummaryJson, "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) {
+      return null;
+    }
+    const envelope = parsed as RepoSummaryEnvelope;
+    return envelope.repoSummary ?? null;
+  } catch {
+    return null;
+  }
+}
