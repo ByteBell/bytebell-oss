@@ -65,5 +65,5 @@ export type {
   SourceFactoryResult,
 } from "./types/pipeline.ts";
 export type { CondensedFileAnalysis } from "./types/condensed-file-analysis.ts";
-export { fetchLatestCommitHash, parseGithubRepo } from "./githubApi.ts";
-export type { ParsedRepo } from "./githubApi.ts";
+export { fetchLatestCommitHash, fetchRecentCommits, parseGithubRepo } from "./githubApi.ts";
+export type { CommitEntry, FetchCommitsResult, ParsedRepo } from "./githubApi.ts";

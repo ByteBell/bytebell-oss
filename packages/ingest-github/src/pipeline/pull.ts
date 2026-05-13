@@ -92,14 +92,17 @@ export async function runPull(msg: JobMessage<GithubPullPayload>): Promise<void>
       return;
     }
 
+    // Deepen the shallow clone first so historical commits selected via the
+    // picker become visible to `merge-base --is-ancestor`. Without this the
+    // assertion below rejects every non-HEAD pick on a `--depth=1` clone.
+    await materialiseEndpoints(repoDir, branch, currentCommit, targetCommit);
+
     if (!(await assertReachableFromBranch(repoDir, targetCommit, branch))) {
       throw new IngestError(
         knowledgeId,
         `target commit ${targetCommit} is not reachable from origin/${branch}. Cross-branch pulls are not supported; create a fresh github_index job for the new branch.`,
       );
     }
-
-    await materialiseEndpoints(repoDir, branch, currentCommit, targetCommit);
 
     const diff = await computePullDiff(repoDir, currentCommit, targetCommit);
 

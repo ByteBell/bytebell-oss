@@ -21,6 +21,13 @@ export interface AnalyseChangedInput {
   metaPaths: MetaPaths;
   analyzer: FileAnalyzer;
   diff: DiffResult;
+  /**
+   * Invoked once per consumed path (analysed, stubbed, queued-as-big-file,
+   * filtered, or failed). Lets the caller drive a `processedFiles` counter
+   * for the progress bar without coupling this strategy to mongo. Best
+   * effort — errors from the callback are swallowed.
+   */
+  onFileProcessed?: () => Promise<void> | void;
 }
 
 export interface AnalyseChangedResult {

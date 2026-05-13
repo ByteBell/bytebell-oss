@@ -1,5 +1,3 @@
-import React from "react";
-import { render } from "ink";
 import { Command } from "commander";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
@@ -8,8 +6,7 @@ import { getJson, HttpClientError, postJson } from "./httpClient.ts";
 import { createProgressBar, createSpinner, error, info, type ProgressBar } from "./output.ts";
 import { startLogTailer, type LogTailer } from "./logTailer.ts";
 import { promptRepoSelector } from "./repoSelectorPrompt.ts";
-import { promptCommitSelector } from "./commitSelectorPrompt.ts";
-import { PullModeSelector, type PullModeSelectorResult } from "./PullModeSelector.tsx";
+import { promptPullMode, resolveCommit } from "./pullPrompts.ts";
 
 interface PullResponse {
   knowledgeId: string;
@@ -71,6 +68,7 @@ async function runPull(
     // a different commit per repo would require a sub-prompt per repo which
     // is not worth the complexity for the rare multi-pull case.
     let chosenTargetCommit: string | undefined = options.commit;
+    let activeToken: string | undefined = options.token;
     if (chosenTargetCommit === undefined && picks.length === 1) {
       const only = picks[0];
       if (only !== undefined) {
@@ -80,12 +78,15 @@ async function runPull(
           return;
         }
         if (mode === "specific") {
-          const commit = await promptCommitSelector({ knowledgeId: only.knowledgeId });
-          if (commit === null) {
+          const picked = await resolveCommit(only.knowledgeId, only.label, activeToken);
+          if (picked === null) {
             info("Cancelled.");
             return;
           }
-          chosenTargetCommit = commit.hash;
+          chosenTargetCommit = picked.hash;
+          if (picked.token !== undefined) {
+            activeToken = picked.token;
+          }
         }
       }
     }
@@ -102,8 +103,8 @@ async function runPull(
         if (chosenTargetCommit !== undefined) {
           body["targetCommitHash"] = chosenTargetCommit;
         }
-        if (options.token !== undefined) {
-          body["gitToken"] = options.token;
+        if (activeToken !== undefined) {
+          body["gitToken"] = activeToken;
         }
         const response = await postJson<PullResponse>("/api/v1/github/pull", body);
         return { targetId, response };
@@ -151,25 +152,6 @@ async function pickRepos(): Promise<RepoPick[]> {
     return [];
   }
   return result.picked.map((p) => ({ knowledgeId: p.item.knowledgeId, label: p.item.label }));
-}
-
-async function promptPullMode(repoLabel: string): Promise<"latest" | "specific" | null> {
-  return new Promise<"latest" | "specific" | null>((resolve) => {
-    const onDone = (result: PullModeSelectorResult): void => {
-      if (result.mode !== undefined) {
-        resolve(result.mode);
-        return;
-      }
-      resolve(null);
-    };
-    const { waitUntilExit } = render(
-      React.createElement(PullModeSelector, {
-        repoLabel,
-        onDone,
-      }),
-    );
-    waitUntilExit().catch(() => undefined);
-  });
 }
 
 async function pollJobStatus(knowledgeId: string, jobId: string): Promise<void> {

@@ -1,40 +1,33 @@
 import type { Request, Response, Router } from "express";
 import express from "express";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import path from "node:path";
-import { stat } from "node:fs/promises";
 import { getKnowledge } from "@bb/mongo";
-import { getBytebellHome } from "@bb/config";
-
-const exec = promisify(execFile);
+import { fetchRecentCommits } from "@bb/ingest-github";
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 2000;
 
-interface CommitEntry {
-  hash: string;
-  shortHash: string;
-  subject: string;
-  author: string;
-  date: string;
-}
-
 interface CommitsResponse {
   knowledgeId: string;
   branch: string;
-  commits: CommitEntry[];
+  commits: Array<{
+    hash: string;
+    shortHash: string;
+    subject: string;
+    author: string;
+    date: string;
+  }>;
 }
 
 /**
  * `GET /api/v1/github/:knowledgeId/commits?limit=N` — return the most recent
- * N commits on the indexed branch's history from the local clone. Used by the
- * CLI commit picker so the user can target any commit in `bytebell pull`.
+ * N commits on the indexed branch via GitHub's REST API.
  *
- * Reads from the local clone at `~/.bytebell/repos/<knowledgeId>`. Runs
- * `git fetch origin <branch>` first so the local refs are up to date with
- * whatever has been pushed since the last ingest. Then runs
- * `git log origin/<branch> -n <limit>` with a stable separator format.
+ * Reads `Authorization: Bearer <pat>` if the client supplies one. Public
+ * repos work unauthenticated; private repos answer 404 until a token is
+ * provided, at which point the CLI re-requests with auth.
+ *
+ * Local clone state is intentionally not consulted — the picker should
+ * work even if the clone is shallow, stale, or missing.
  */
 export function buildGithubCommitsRoute(): Router {
   const router = express.Router();
@@ -59,66 +52,34 @@ export function buildGithubCommitsRoute(): Router {
       return;
     }
     const branch = knowledge.source.branch ?? "main";
-    const repoDir = path.join(getBytebellHome(), "repos", knowledgeId);
+    const gitToken = extractBearerToken(req.headers["authorization"]);
 
-    try {
-      await stat(path.join(repoDir, ".git"));
-    } catch {
-      res.status(404).json({ error: "local clone not found; re-index the knowledge to recreate it" });
-      return;
-    }
-
-    try {
-      await exec("git", ["-C", repoDir, "fetch", "origin", branch], { timeout: 30_000 });
-    } catch {
-      // Non-fatal: proceed with whatever the local clone has.
-    }
-
-    let stdout: string;
-    try {
-      const result = await exec(
-        "git",
-        [
-          "-C",
-          repoDir,
-          "log",
-          `origin/${branch}`,
-          `--max-count=${limit}`,
-          "--pretty=format:%H%x1f%h%x1f%s%x1f%an%x1f%aI",
-        ],
-        { maxBuffer: 16 * 1024 * 1024 },
-      );
-      stdout = result.stdout;
-    } catch (cause: unknown) {
-      const msg = cause instanceof Error ? cause.message : String(cause);
-      res.status(500).json({ error: `git log failed: ${msg}` });
-      return;
-    }
-
-    const commits: CommitEntry[] = [];
-    for (const line of stdout.split("\n")) {
-      if (line.length === 0) {
-        continue;
+    const result = await fetchRecentCommits(knowledge.source.repoUrl, branch, limit, gitToken);
+    switch (result.status) {
+      case "ok": {
+        const payload: CommitsResponse = { knowledgeId, branch, commits: result.commits };
+        res.status(200).json(payload);
+        return;
       }
-      const parts = line.split("\x1f");
-      const hash = parts[0];
-      const shortHash = parts[1];
-      const subject = parts[2];
-      const author = parts[3];
-      const date = parts[4];
-      if (
-        hash === undefined ||
-        shortHash === undefined ||
-        subject === undefined ||
-        author === undefined ||
-        date === undefined
-      ) {
-        continue;
+      case "not_found": {
+        res
+          .status(404)
+          .json({ error: "repo not found or private; supply a github token via Authorization: Bearer <pat>" });
+        return;
       }
-      commits.push({ hash, shortHash, subject, author, date });
+      case "unauthorized": {
+        res.status(401).json({ error: "github token rejected" });
+        return;
+      }
+      case "rate_limited": {
+        res.status(429).json({ error: "github rate limit reached; retry later or supply a token" });
+        return;
+      }
+      case "error": {
+        res.status(502).json({ error: result.message });
+        return;
+      }
     }
-    const payload: CommitsResponse = { knowledgeId, branch, commits };
-    res.status(200).json(payload);
   });
   return router;
 }
@@ -132,4 +93,17 @@ function parseLimit(raw: string | undefined): number {
     return DEFAULT_LIMIT;
   }
   return Math.min(n, MAX_LIMIT);
+}
+
+function extractBearerToken(header: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(header) ? header[0] : header;
+  if (typeof raw !== "string") {
+    return undefined;
+  }
+  const match = /^Bearer\s+(.+)$/iu.exec(raw.trim());
+  if (match === null) {
+    return undefined;
+  }
+  const token = match[1]?.trim();
+  return token !== undefined && token.length > 0 ? token : undefined;
 }
