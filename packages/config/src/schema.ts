@@ -38,16 +38,11 @@ export const configSchema = z
     "condense.context.limit": z.number().int().positive().default(12000),
     "condense.prompt.overhead": z.number().int().nonnegative().default(1500),
     "small.file.dedup.threshold": z.number().int().positive().default(3),
-    "big.file.line.threshold": z.number().int().positive().default(1200),
+    "big.file.line.threshold": z.number().int().positive().default(2000),
+    org_id: z.string().default("local"),
     "skip.decision.enabled": z.boolean().default(true),
-    "skip.decision.max.chars.for.llm": z.number().int().positive().default(20000),
+    "skip.decision.max.chars.for.llm": z.number().int().positive().default(4000),
     "skip.decision.cache.path": z.string().default(""),
-    org_id: z
-      .string()
-      .default("local")
-      .refine((v) => v === "local", {
-        message: "org_id must be 'local' — OSS builds are single-tenant and cannot run with any other org_id",
-      }),
   })
   .strict();
 
@@ -124,10 +119,10 @@ export const HINTS: Readonly<Record<Config, string>> = {
   [Config.CondensePromptOverhead]: "bytebell set condense.prompt.overhead <n>",
   [Config.SmallFileDedupThreshold]: "bytebell set small.file.dedup.threshold <n>",
   [Config.BigFileLineThreshold]: "bytebell set big.file.line.threshold <n>",
-  [Config.OrgId]: "org_id is fixed to 'local' in OSS builds and cannot be changed",
+  [Config.OrgId]: "bytebell set org_id <value>",
   [Config.SkipDecisionEnabled]: "bytebell set skip.decision.enabled <true|false>",
   [Config.SkipDecisionMaxCharsForLlm]: "bytebell set skip.decision.max.chars.for.llm <n>",
-  [Config.SkipDecisionCachePath]: "bytebell set skip.decision.cache.path <absolute-path>",
+  [Config.SkipDecisionCachePath]: "bytebell set skip.decision.cache.path <path>",
 };
 
 export function readField<K extends Config>(cfg: BytebellConfig, key: K): ConfigValue<K> {
