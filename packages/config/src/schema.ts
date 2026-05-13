@@ -30,6 +30,19 @@ export const configSchema = z
     log_level: z.enum(LOG_LEVELS).default("info"),
     log_retention_days: z.number().int().positive().default(14),
     llm_cache_enabled: z.boolean().default(true),
+    "context.window.limit": z.number().int().positive().default(15000),
+    "max.tokens.per.chunk": z.number().int().positive().default(6000),
+    "big.file.concurrency": z.number().int().positive().default(25),
+    "absolute.file.size.cap": z.number().int().positive().default(52428800),
+    "concurrent.workers": z.number().int().positive().default(4),
+    "condense.context.limit": z.number().int().positive().default(12000),
+    "condense.prompt.overhead": z.number().int().nonnegative().default(1500),
+    "small.file.dedup.threshold": z.number().int().positive().default(3),
+    "big.file.line.threshold": z.number().int().positive().default(2000),
+    org_id: z.string().default("local"),
+    "skip.decision.enabled": z.boolean().default(true),
+    "skip.decision.max.chars.for.llm": z.number().int().positive().default(4000),
+    "skip.decision.cache.path": z.string().default(""),
   })
   .strict();
 
@@ -54,6 +67,19 @@ export type ConfigValueMap = {
   [Config.LogLevel]: LogLevel;
   [Config.LogRetentionDays]: number;
   [Config.LlmCacheEnabled]: boolean;
+  [Config.ContextWindowLimit]: number;
+  [Config.MaxTokensPerChunk]: number;
+  [Config.BigFileConcurrency]: number;
+  [Config.AbsoluteFileSizeCap]: number;
+  [Config.ConcurrentWorkers]: number;
+  [Config.CondenseContextLimit]: number;
+  [Config.CondensePromptOverhead]: number;
+  [Config.SmallFileDedupThreshold]: number;
+  [Config.BigFileLineThreshold]: number;
+  [Config.OrgId]: string;
+  [Config.SkipDecisionEnabled]: boolean;
+  [Config.SkipDecisionMaxCharsForLlm]: number;
+  [Config.SkipDecisionCachePath]: string;
 };
 
 export type ConfigValue<K extends Config> = ConfigValueMap[K];
@@ -84,6 +110,19 @@ export const HINTS: Readonly<Record<Config, string>> = {
   [Config.LogLevel]: "bytebell set log-level <error|warn|info|debug>",
   [Config.LogRetentionDays]: "bytebell set log-retention-days <n>",
   [Config.LlmCacheEnabled]: "bytebell set llm_cache_enabled <true|false>",
+  [Config.ContextWindowLimit]: "bytebell set context.window.limit <n>",
+  [Config.MaxTokensPerChunk]: "bytebell set max.tokens.per.chunk <n>",
+  [Config.BigFileConcurrency]: "bytebell set big.file.concurrency <n>",
+  [Config.AbsoluteFileSizeCap]: "bytebell set absolute.file.size.cap <bytes>",
+  [Config.ConcurrentWorkers]: "bytebell set concurrent.workers <n>",
+  [Config.CondenseContextLimit]: "bytebell set condense.context.limit <n>",
+  [Config.CondensePromptOverhead]: "bytebell set condense.prompt.overhead <n>",
+  [Config.SmallFileDedupThreshold]: "bytebell set small.file.dedup.threshold <n>",
+  [Config.BigFileLineThreshold]: "bytebell set big.file.line.threshold <n>",
+  [Config.OrgId]: "bytebell set org_id <value>",
+  [Config.SkipDecisionEnabled]: "bytebell set skip.decision.enabled <true|false>",
+  [Config.SkipDecisionMaxCharsForLlm]: "bytebell set skip.decision.max.chars.for.llm <n>",
+  [Config.SkipDecisionCachePath]: "bytebell set skip.decision.cache.path <path>",
 };
 
 export function readField<K extends Config>(cfg: BytebellConfig, key: K): ConfigValue<K> {
@@ -120,6 +159,32 @@ export function readField<K extends Config>(cfg: BytebellConfig, key: K): Config
       return cfg.log_retention_days as ConfigValue<K>;
     case Config.LlmCacheEnabled:
       return cfg.llm_cache_enabled as ConfigValue<K>;
+    case Config.ContextWindowLimit:
+      return cfg["context.window.limit"] as ConfigValue<K>;
+    case Config.MaxTokensPerChunk:
+      return cfg["max.tokens.per.chunk"] as ConfigValue<K>;
+    case Config.BigFileConcurrency:
+      return cfg["big.file.concurrency"] as ConfigValue<K>;
+    case Config.AbsoluteFileSizeCap:
+      return cfg["absolute.file.size.cap"] as ConfigValue<K>;
+    case Config.ConcurrentWorkers:
+      return cfg["concurrent.workers"] as ConfigValue<K>;
+    case Config.CondenseContextLimit:
+      return cfg["condense.context.limit"] as ConfigValue<K>;
+    case Config.CondensePromptOverhead:
+      return cfg["condense.prompt.overhead"] as ConfigValue<K>;
+    case Config.SmallFileDedupThreshold:
+      return cfg["small.file.dedup.threshold"] as ConfigValue<K>;
+    case Config.BigFileLineThreshold:
+      return cfg["big.file.line.threshold"] as ConfigValue<K>;
+    case Config.OrgId:
+      return cfg.org_id as ConfigValue<K>;
+    case Config.SkipDecisionEnabled:
+      return cfg["skip.decision.enabled"] as ConfigValue<K>;
+    case Config.SkipDecisionMaxCharsForLlm:
+      return cfg["skip.decision.max.chars.for.llm"] as ConfigValue<K>;
+    case Config.SkipDecisionCachePath:
+      return cfg["skip.decision.cache.path"] as ConfigValue<K>;
   }
 }
 
@@ -157,5 +222,31 @@ export function writeField<K extends Config>(cfg: BytebellConfig, key: K, value:
       return { ...cfg, log_retention_days: value as number };
     case Config.LlmCacheEnabled:
       return { ...cfg, llm_cache_enabled: value as boolean };
+    case Config.ContextWindowLimit:
+      return { ...cfg, "context.window.limit": value as number };
+    case Config.MaxTokensPerChunk:
+      return { ...cfg, "max.tokens.per.chunk": value as number };
+    case Config.BigFileConcurrency:
+      return { ...cfg, "big.file.concurrency": value as number };
+    case Config.AbsoluteFileSizeCap:
+      return { ...cfg, "absolute.file.size.cap": value as number };
+    case Config.ConcurrentWorkers:
+      return { ...cfg, "concurrent.workers": value as number };
+    case Config.CondenseContextLimit:
+      return { ...cfg, "condense.context.limit": value as number };
+    case Config.CondensePromptOverhead:
+      return { ...cfg, "condense.prompt.overhead": value as number };
+    case Config.SmallFileDedupThreshold:
+      return { ...cfg, "small.file.dedup.threshold": value as number };
+    case Config.BigFileLineThreshold:
+      return { ...cfg, "big.file.line.threshold": value as number };
+    case Config.OrgId:
+      throw new Error("org_id is fixed to 'local' in OSS builds and cannot be set");
+    case Config.SkipDecisionEnabled:
+      return { ...cfg, "skip.decision.enabled": value as boolean };
+    case Config.SkipDecisionMaxCharsForLlm:
+      return { ...cfg, "skip.decision.max.chars.for.llm": value as number };
+    case Config.SkipDecisionCachePath:
+      return { ...cfg, "skip.decision.cache.path": value as string };
   }
 }

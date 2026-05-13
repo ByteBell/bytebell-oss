@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { Config } from "@bb/types";
-import { HINTS, getConfigValue } from "@bb/config";
+import { HINTS, getConfigValue, isDevMode } from "@bb/config";
 import { applyInfraDefaults, checkPreflight } from "./bootConfig.ts";
 import {
   DockerComposeError,
@@ -10,7 +10,7 @@ import {
   up,
 } from "./dockerInfra.ts";
 import { ServerStartTimeoutError, ensureServerRunning } from "./serverSpawn.ts";
-import { createSpinner, error, success } from "./output.ts";
+import { createSpinner, error, info, success } from "./output.ts";
 
 export function buildBootCommand(): Command {
   const cmd = new Command("boot");
@@ -22,6 +22,10 @@ async function runBoot(): Promise<void> {
   if (!enforcePreflight()) {
     process.exitCode = 1;
     return;
+  }
+
+  if (isDevMode()) {
+    info(`dev mode: logs → ${process.cwd()}/logs/`);
   }
 
   const defaults = applyInfraDefaults();
@@ -65,6 +69,11 @@ async function runBoot(): Promise<void> {
     });
     if (serverContext.alreadyRunning) {
       serverSpinner.stop(true, `Server already running`);
+      if (serverContext.devModeMismatch === true) {
+        info(
+          "BYTEBELL_DEV=1 set but server is already running. Run `bytebell shutdown && BYTEBELL_DEV=1 bytebell boot` to apply.",
+        );
+      }
     } else {
       serverSpinner.stop(true, `Server started (logs: ${serverContext.logPath ?? "n/a"})`);
     }

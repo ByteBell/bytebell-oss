@@ -30,6 +30,16 @@ export class IngestPathError extends Error {
   }
 }
 
+export class CancellationError extends Error {
+  override readonly name = "CancellationError";
+  readonly knowledgeId: string;
+
+  constructor(knowledgeId: string) {
+    super(`ingestion cancelled: ${knowledgeId}`);
+    this.knowledgeId = knowledgeId;
+  }
+}
+
 function describe(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }

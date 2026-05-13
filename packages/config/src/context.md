@@ -48,3 +48,11 @@ seam so that `loader.ts` and `writer.ts` never have to import each other.
 - File mode `0o600` on `config.json`; directory mode `0o700` on `~/.bytebell/`.
 - `loadConfig` always calls `ensureBytebellHome` first — never reads a missing
   file.
+- **`org_id` is locked to `"local"` in OSS builds.** The Zod schema for
+  `org_id` defaults to `"local"` and `.refine`s that no other value is
+  accepted — a hand-edited `config.json` with any other `org_id` makes
+  `loadConfig()` throw and the server refuses to boot. `writeField`
+  throws on `Config.OrgId`, and `keyMap.ts` in `@bb/cli` deliberately
+  has no entry for it so `bytebell set org_id …` is rejected at the CLI.
+  Per-job org overrides for downstream enterprise builds live on the
+  payload (`GithubIndexPayload.orgId?`), not in config.json.

@@ -1,0 +1,118 @@
+// SPDX-License-Identifier: AGPL-3.0-only WITH non-commercial-clause
+//
+// =====================================================================
+// ARCHIVED — v1 strategy. Superseded by `strategies/flat-folder/`.
+// =====================================================================
+//
+// The file extension `.archived` keeps this out of the TypeScript build.
+// Kept verbatim for reference: a future strategy author can read the v1
+// shape (single-pass per-file LLM, no folder/repo summaries, no big-file
+// chunking, diff-mode for pull) before deciding what to bring forward.
+//
+// Do NOT re-export this from `index.ts`. Do NOT depend on imports below
+// resolving in this directory.
+// =====================================================================
+
+import { createHash } from "node:crypto";
+import { Config, type ModelTokenBreakdown } from "@bb/types";
+import { getConfigValue } from "@bb/config";
+import { updateKnowledgeProgress, upsertRawFile } from "@bb/mongo";
+import { upsertFileNode } from "@bb/neo4j";
+import { countFiles, walkRepo, type ScannedFile } from "./scan.ts";
+import { analyzeFile } from "./analyze.ts";
+import type { IngestionContext, IngestionResult, IngestionStrategy } from "./Strategy.ts";
+import { runInPool } from "./concurrency.ts";
+
+export class BasicFileAnalysisStrategy implements IngestionStrategy {
+  readonly name = "basic-file-analysis";
+
+  async ingest({ knowledgeId, rootDir, priorShas }: IngestionContext): Promise<IngestionResult> {
+    const seenPaths = new Set<string>();
+    const modelTokens: ModelTokenBreakdown = {};
+
+    if (priorShas === undefined) {
+      const totalFiles = await countFiles(rootDir);
+      await updateKnowledgeProgress(knowledgeId, 0, totalFiles);
+      let filesAnalyzed = 0;
+      const concurrency = getConfigValue(Config.ConcurrencyGithub);
+
+      await runInPool(concurrency, walkRepo(rootDir), async (file) => {
+        seenPaths.add(file.relativePath);
+        await this.analyzeAndPersist(knowledgeId, file, modelTokens);
+        filesAnalyzed += 1;
+        await updateKnowledgeProgress(knowledgeId, filesAnalyzed);
+      });
+      return { filesAnalyzed, filesSkipped: 0, seenPaths, modelTokens };
+    }
+
+    // Diff mode: walk once, hash each file, eagerly skip those whose sha
+    // matches `priorShas`. Buffer the changed subset so the progress bar
+    // can denominate against the actual workload, not the full repo.
+    const changed: Array<{ file: ScannedFile; sha: string }> = [];
+    let filesSkipped = 0;
+    for await (const file of walkRepo(rootDir)) {
+      seenPaths.add(file.relativePath);
+      const sha = await sha256(file.content);
+      if (priorShas.get(file.relativePath) === sha) {
+        filesSkipped += 1;
+        continue;
+      }
+      changed.push({ file, sha });
+    }
+
+    await updateKnowledgeProgress(knowledgeId, 0, changed.length);
+    let filesAnalyzed = 0;
+    const concurrency = getConfigValue(Config.ConcurrencyGithub);
+
+    await runInPool(concurrency, changed, async ({ file, sha }) => {
+      await this.analyzeAndPersist(knowledgeId, file, modelTokens, sha);
+      filesAnalyzed += 1;
+      await updateKnowledgeProgress(knowledgeId, filesAnalyzed);
+    });
+    return { filesAnalyzed, filesSkipped, seenPaths, modelTokens };
+  }
+
+  private async analyzeAndPersist(
+    knowledgeId: string,
+    file: ScannedFile,
+    modelTokens: ModelTokenBreakdown,
+    precomputedSha?: string,
+  ): Promise<void> {
+    const { language, analysis, usage } = await analyzeFile(file.relativePath, file.content);
+    const sha = precomputedSha ?? (await sha256(file.content));
+    await upsertRawFile({
+      knowledgeId,
+      relativePath: file.relativePath,
+      content: file.content,
+      sha,
+      sizeBytes: file.sizeBytes,
+      language,
+      analysis,
+    });
+    await upsertFileNode({
+      knowledgeId,
+      relativePath: file.relativePath,
+      language,
+      sha,
+      sizeBytes: file.sizeBytes,
+      analysis,
+    });
+    if (usage !== null) {
+      accumulate(modelTokens, usage.model, usage.inputTokens, usage.outputTokens);
+    }
+  }
+}
+
+function accumulate(totals: ModelTokenBreakdown, model: string, inputTokens: number, outputTokens: number): void {
+  const existing = totals[model];
+  if (existing === undefined) {
+    totals[model] = { inputTokens, outputTokens };
+    return;
+  }
+  existing.inputTokens += inputTokens;
+  existing.outputTokens += outputTokens;
+}
+
+async function sha256(content: string): Promise<string> {
+  return createHash("sha256").update(content).digest("hex");
+}

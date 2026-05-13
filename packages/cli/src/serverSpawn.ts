@@ -3,7 +3,8 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Config } from "@bb/types";
-import { getBytebellHome, getConfigValue } from "@bb/config";
+import { getConfigValue, isDevMode } from "@bb/config";
+import { getLogsDir } from "@bb/logger";
 
 const HEALTH_TIMEOUT_MS = 500;
 const SPAWN_POLL_INTERVAL_MS = 200;
@@ -22,9 +23,14 @@ export class ServerStartTimeoutError extends Error {
 export async function ensureServerRunning(onProgress?: (line: string) => void): Promise<{
   alreadyRunning: boolean;
   logPath?: string;
+  devModeMismatch?: boolean;
 }> {
   if (await isHealthy()) {
-    return { alreadyRunning: true };
+    // The running server was spawned in whatever env existed at boot. We
+    // can't introspect its environment from here, but if the CURRENT process
+    // has BYTEBELL_DEV=1 set we surface a mismatch hint — without it, users
+    // assume the running server picked up the toggle when it hasn't.
+    return { alreadyRunning: true, devModeMismatch: isDevMode() };
   }
   const logPath = await spawnDetached();
   for (let i = 0; i < SPAWN_MAX_POLLS; i++) {
@@ -52,7 +58,7 @@ async function isHealthy(): Promise<boolean> {
 }
 
 async function spawnDetached(): Promise<string> {
-  const logsDir = path.join(getBytebellHome(), "logs");
+  const logsDir = getLogsDir();
   await mkdir(logsDir, { recursive: true, mode: 0o700 });
   const today = new Date().toISOString().slice(0, 10);
   const logPath = path.join(logsDir, `server-${today}.log`);

@@ -35,7 +35,7 @@ enum Config { ... }
 enum JobType     { GithubIndex, GithubPull }
 enum JobPriority { Low, Normal, High }
 interface GithubIndexPayload { knowledgeId, repoUrl, branch?, commitHash?, gitToken? }
-interface GithubPullPayload  { knowledgeId, latestCommitHash?, isShallow, gitToken? }
+interface GithubPullPayload  { knowledgeId, targetCommitHash?, gitToken? }
 interface JobMessage<P>      { id, type, priority, knowledgeId, attempt, createdAt, payload }
 type      PayloadFor<T extends JobType>
 

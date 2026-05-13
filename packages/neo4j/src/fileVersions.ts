@@ -27,6 +27,17 @@ SET fv.language = f.language,
     fv.purpose = f.purpose,
     fv.summary = f.summary,
     fv.businessContext = f.businessContext,
+    fv.dataFlowDirection = f.dataFlowDirection,
+    fv.ontologyConcepts = f.ontologyConcepts,
+    fv.businessEntities = f.businessEntities,
+    fv.systemCapabilities = f.systemCapabilities,
+    fv.sideEffects = f.sideEffects,
+    fv.configDependencies = f.configDependencies,
+    fv.integrationSurface = f.integrationSurface,
+    fv.contractsProvided = f.contractsProvided,
+    fv.contractsConsumed = f.contractsConsumed,
+    fv.sectionNames = f.sectionNames,
+    fv.sectionDescriptions = f.sectionDescriptions,
     fv.snapshotAt = $snapshotAt
 MERGE (f)-[:HAS_VERSION]->(fv)
 `;
