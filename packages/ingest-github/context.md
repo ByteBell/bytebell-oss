@@ -58,6 +58,7 @@ The package does **not** own:
 ## Public exports
 
 ```ts
+// High-level registration (OSS standalone wires this once at boot)
 function registerGithubWorkers(deps?: RegisterGithubWorkersDeps): void  // wires GithubIndex + GithubPull
 function registerLocalIngestWorker(): void                              // wires LocalIngest
 
@@ -65,6 +66,18 @@ interface RegisterGithubWorkersDeps {
   sourceFactory?: SourceFactory;  // index-side hook
   pullFactory?: PullFactory;      // pull-side hook (provides reader + diff + targetCommit)
 }
+
+// Lower-level building blocks (downstream consumers with their own queue
+// skip registerGithubWorkers and wire these against their own registry)
+function createPipelineRunner(deps: CreatePipelineRunnerDeps): IngestRunnerDeps
+function createGithubIngestHandler(deps: IngestJobHandlerDeps): (msg) => Promise<void>
+function createLocalIngestHandler(deps: IngestJobHandlerDeps): (msg) => Promise<void>
+function runPull(msg: JobMessage<GithubPullPayload>, pullFactory?: PullFactory): Promise<void>
+function reposRoot(): string
+
+function createFlatFolderStrategy(deps): IngestStrategy
+function createLlmFileAnalyzer(deps): FileAnalyzer
+function createDiskSourceReader(deps): SourceReader
 ```
 
 The optional `sourceFactory` lets downstream consumers inject a custom
@@ -77,10 +90,13 @@ checkout` for pull). See [docs/extension-points.md](docs/extension-points.md)
 for the design rationale.
 
 For per-job LLM credentials, downstream consumers set
-`{ llmApiKey?, llmProvider?, llmModel? }` on the `GithubIndexPayload` /
-`GithubPullPayload` they enqueue (`PayloadLlmOverrides` from `@bb/types`).
-The runner extracts those into `StrategyContext.llmCallContext` and every
-LLM call site forwards it to `@bb/llm`. OSS standalone leaves the overrides
+`{ llmApiKey?, llmProvider?, llmModel?, llmKeyId? }` on the
+`GithubIndexPayload` / `GithubPullPayload` they enqueue
+(`PayloadLlmOverrides` from `@bb/types`). The runner extracts those into
+`StrategyContext.llmCallContext` and every LLM call site forwards it to
+`@bb/llm`. `llmProvider` is `string` (open) so multi-provider consumers
+can carry richer taxonomies; the OSS LLM client narrows to
+`openrouter`/`ollama` at the boundary. OSS standalone leaves the overrides
 unset and falls back to `Config.OpenrouterApiKey` + `Config.LlmProvider`.
 
 Both `register*Workers()` calls run once at `@bb/server` boot. The

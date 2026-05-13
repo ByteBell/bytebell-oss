@@ -19,10 +19,15 @@ Single home for shared types and enums that cross package boundaries:
   `PayloadLlmOverrides` — the queue/job vocabulary shared between
   `@bb/queue` (publisher) and `@bb/ingest-*` packages (worker handlers).
   `PayloadLlmOverrides` is the optional `{ llmApiKey?, llmProvider?,
-llmModel? }` mixin that lets downstream consumers carry per-job LLM
-  credentials through the payload (the extension point used by
-  the enterprise wrapper to inject per-org credentials at the enqueue
-  boundary). Mixed into both GitHub payloads.
+llmModel?, llmKeyId? }` mixin that lets downstream consumers carry per-job
+  LLM credentials through the payload (the extension point used by the
+  enterprise wrapper to inject per-org credentials at the enqueue
+  boundary). `llmProvider` is intentionally typed as `string` rather than
+  a closed union — OSS standalone uses `"openrouter"`/`"ollama"`, but
+  downstream consumers may carry richer taxonomies (`"anthropic"`,
+  `"gemini"`, …) that OSS ignores at runtime. `llmKeyId` is opaque to OSS;
+  it's an audit pointer kept by downstream consumers. Mixed into both
+  GitHub payloads.
 - `KnowledgeState` — the processing-status lifecycle enum (`CREATED →
 QUEUED → INGESTED → PROCESSING → PROCESSED ↘ FAILED`) referenced by
   `@bb/queue` (writes `QUEUED`), `@bb/mongo` (`setKnowledgeState`), and
@@ -39,9 +44,9 @@ enum Config { ... }
 
 enum JobType     { GithubIndex, GithubPull, LocalIngest }
 enum JobPriority { Low, Normal, High }
-interface PayloadLlmOverrides { llmApiKey?, llmProvider?: "openrouter" | "ollama", llmModel? }
+interface PayloadLlmOverrides { llmApiKey?, llmProvider?: string, llmModel?, llmKeyId? }
 interface GithubIndexPayload extends PayloadLlmOverrides { knowledgeId, repoUrl, branch?, commitHash?, gitToken?, orgId? }
-interface GithubPullPayload  extends PayloadLlmOverrides { knowledgeId, targetCommitHash?, gitToken? }
+interface GithubPullPayload  extends PayloadLlmOverrides { knowledgeId, orgId?, targetCommitHash?, gitToken? }
 interface LocalIngestPayload { knowledgeId, rootDir, orgId? }
 interface JobMessage<P>      { id, type, priority, knowledgeId, attempt, createdAt, payload }
 type      PayloadFor<T extends JobType>

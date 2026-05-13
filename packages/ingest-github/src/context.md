@@ -11,23 +11,38 @@ Domain (composes infra: `@bb/config`, `@bb/llm`, `@bb/mongo`, `@bb/neo4j`,
 
 ## Top-level files
 
-- **[index.ts](index.ts)** — public surface. `registerGithubWorkers`,
-  `registerLocalIngestWorker`, `createFlatFolderStrategy`,
-  `createLlmFileAnalyzer`, `createDiskSourceReader`, the
-  `SourceReader` / `ScanEntry` / `ScannedFile` / `OversizedFile` /
-  `ScanDeps` / `ArchiveSink` / `ArchiveSinkInput` / `SourceFactory` /
-  `SourceFactoryInput` / `SourceFactoryResult` / `PullFactory` /
-  `PullFactoryInput` / `PullFactoryResult` / `DiffResult` /
-  `RenamedFile` / `FileAnalyzer` / `AnalyzedFileResult` port types, the
-  `IngestStrategy` / `StrategyInput` / `StrategyResult` /
-  `StrategyContext` types, and `CondensedFileAnalysis`. Plus
-  `parseGithubRepo` / `fetchLatestCommitHash` / `fetchRecentCommits`
-  (used by the pull route). `registerGithubWorkers` accepts optional
-  `sourceFactory` (index) and `pullFactory` (pull) injections through
-  `RegisterGithubWorkersDeps`; the open-source binary leaves both
-  undefined. It registers both `JobType.GithubIndex` (full re-index, via
-  `runner.run` + optional `sourceFactory`) and `JobType.GithubPull`
-  (incremental diff-and-apply via `runPull` + optional `pullFactory`).
+- **[index.ts](index.ts)** — public surface. The high-level
+  registration helpers (`registerGithubWorkers`, `registerLocalIngestWorker`)
+  for the OSS standalone, plus the lower-level building blocks downstream
+  consumers wire against their own queue/registry:
+  - Factories: `createFlatFolderStrategy`, `createLlmFileAnalyzer`,
+    `createDiskSourceReader`, `createPipelineRunner` (the orchestrator),
+    `createGithubIngestHandler` / `createLocalIngestHandler` (the BullMQ
+    processor factories used internally by `registerGithubWorkers`).
+  - Direct runner: `runPull(msg, pullFactory?)` — the pull worker the
+    enterprise wrapper invokes directly from its own registry.
+  - Helper: `reposRoot()` — resolves `~/.bytebell/repos`.
+  - Port types: `SourceReader` / `ScanEntry` / `ScannedFile` /
+    `OversizedFile` / `ScanDeps` / `ArchiveSink` / `ArchiveSinkInput` /
+    `SourceFactory` / `SourceFactoryInput` / `SourceFactoryResult` /
+    `PullFactory` / `PullFactoryInput` / `PullFactoryResult` /
+    `DiffResult` / `RenamedFile` / `FileAnalyzer` / `AnalyzedFileResult`.
+  - Runner types: `IngestRunnerDeps` / `IngestRunnerInput` /
+    `IngestJobHandlerDeps` / `CreatePipelineRunnerDeps`.
+  - Strategy types: `IngestStrategy` / `StrategyInput` / `StrategyResult` /
+    `StrategyContext`.
+  - `CondensedFileAnalysis`.
+  - GitHub helpers: `parseGithubRepo` / `fetchLatestCommitHash` /
+    `fetchRecentCommits`.
+  `registerGithubWorkers` accepts optional `sourceFactory` (index) and
+  `pullFactory` (pull) injections through `RegisterGithubWorkersDeps`;
+  the open-source binary leaves both undefined. It registers both
+  `JobType.GithubIndex` (full re-index, via `runner.run` + optional
+  `sourceFactory`) and `JobType.GithubPull` (incremental diff-and-apply
+  via `runPull` + optional `pullFactory`). Downstream consumers that
+  bring their own queue (e.g. the enterprise wrapper using `@bytebell/queue`)
+  skip `registerGithubWorkers` entirely and call `createPipelineRunner`,
+  `createGithubIngestHandler`, and `runPull` directly.
 - **[githubApi.ts](githubApi.ts)** — `parseGithubRepo(repoUrl)` and
   `fetchLatestCommitHash(owner, repo, branch, gitToken?)`. **Pull-only
   utility**; revisit in the pull plan. Kept in place rather than deleted so

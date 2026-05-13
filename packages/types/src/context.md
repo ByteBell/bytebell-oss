@@ -24,11 +24,17 @@ package-level contract; this file documents how the source tree is split.
   it and the pipeline reads `Config.OrgId` from `~/.bytebell/config.json`
   (locked to `"local"` in OSS builds; downstream enterprise builds set
   `orgId` per-job). Both GitHub payloads also extend `PayloadLlmOverrides`
-  which adds optional `llmApiKey?`, `llmProvider?`, `llmModel?` — the
-  extension point that lets downstream enterprise builds resolve per-org
-  LLM credentials at the enqueue boundary and pass them through the
-  payload. OSS standalone leaves the LLM fields unset and the pipeline
-  falls back to `Config.OpenrouterApiKey` + `Config.LlmProvider`.
+  which adds optional `llmApiKey?`, `llmProvider?: string`, `llmModel?`,
+  `llmKeyId?` — the extension point that lets downstream enterprise
+  builds resolve per-org LLM credentials at the enqueue boundary and
+  pass them through the payload. `llmProvider` is `string` (not a closed
+  union) so multi-provider enterprise consumers can carry `"anthropic"`,
+  `"gemini"`, etc.; OSS narrows to `"openrouter"`/`"ollama"` at the LLM
+  client boundary. `llmKeyId` is opaque audit metadata OSS ignores. OSS
+  standalone leaves all four fields unset and the pipeline falls back to
+  `Config.OpenrouterApiKey` + `Config.LlmProvider`. `GithubPullPayload`
+  also carries an optional `orgId?` so downstream multi-tenant workers
+  can scope Mongo/Neo4j lookups by org.
 - **[knowledge.ts](knowledge.ts)** — the `KnowledgeState` enum modeling
   the lifecycle in [CLAUDE.md](../../../CLAUDE.md). v0 only ships the
   enum; the full `Knowledge` document interface lands when domain CRUD

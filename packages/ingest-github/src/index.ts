@@ -51,6 +51,13 @@ export function registerLocalIngestWorker(): void {
 export { createFlatFolderStrategy } from "./strategies/flat-folder/index.ts";
 export { createLlmFileAnalyzer } from "./adapters/llm-file-analyzer.ts";
 export { createDiskSourceReader } from "./pipeline/disk-source-reader.ts";
+export { createPipelineRunner } from "./pipeline/run.ts";
+export type { CreatePipelineRunnerDeps } from "./pipeline/run.ts";
+export { createGithubIngestHandler, createLocalIngestHandler } from "./handlers/ingest-job.ts";
+export type { IngestJobHandlerDeps } from "./handlers/ingest-job.ts";
+export { runPull } from "./pipeline/pull.ts";
+export { reposRoot } from "./pipeline/paths.ts";
+export type { IngestRunnerDeps, IngestRunnerInput } from "./types/ingest-runner.ts";
 export type { IngestStrategy, StrategyInput, StrategyResult, StrategyContext } from "./types/strategy.ts";
 export type {
   FileAnalyzer,

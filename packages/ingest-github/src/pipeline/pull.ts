@@ -37,14 +37,14 @@ function resolveOrgId(payload: { orgId?: string }): string {
 
 function llmCallContextFromPayload(payload: {
   llmApiKey?: string;
-  llmProvider?: "openrouter" | "ollama";
+  llmProvider?: string;
   llmModel?: string;
 }): AskLlmOptions | undefined {
   const ctx: AskLlmOptions = {};
   if (payload.llmApiKey !== undefined && payload.llmApiKey.length > 0) {
     ctx.apiKey = payload.llmApiKey;
   }
-  if (payload.llmProvider !== undefined) {
+  if (payload.llmProvider === "openrouter" || payload.llmProvider === "ollama") {
     ctx.provider = payload.llmProvider;
   }
   if (payload.llmModel !== undefined && payload.llmModel.length > 0) {
