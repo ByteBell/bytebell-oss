@@ -15,4 +15,12 @@ export enum Config {
   LogLevel = "log_level",
   LogRetentionDays = "log_retention_days",
   LlmCacheEnabled = "llm_cache_enabled",
+  ContextWindowLimit = "context.window.limit",
+  MaxTokensPerChunk = "max.tokens.per.chunk",
+  BigFileConcurrency = "big.file.concurrency",
+  AbsoluteFileSizeCap = "absolute.file.size.cap",
+  ConcurrentWorkers = "concurrent.workers",
+  CondenseContextLimit = "condense.context.limit",
+  CondensePromptOverhead = "condense.prompt.overhead",
+  SmallFileDedupThreshold = "small.file.dedup.threshold",
 }
