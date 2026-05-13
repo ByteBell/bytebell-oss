@@ -1,6 +1,6 @@
 # `@bb/redis/src` — context
 
-Implementation of `@bb/redis`. See [../context.md](../context.md) for the
+Implementation of `@bb/redis`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files
@@ -58,7 +58,7 @@ implementation file.
 
 ## Adding a helper
 
-Follow the recipes in [../context.md](../context.md) under _How to extend_.
+Follow the recipes in [../README.md](../README.md) under _How to extend_.
 Cache helpers (e.g. `cacheGet` / `cacheSet`) live as flat files in
 `src/<name>.ts` (the repo's ESLint rule forbids parent traversal, so
 subdirectories require import gymnastics — keep `src/` flat unless the

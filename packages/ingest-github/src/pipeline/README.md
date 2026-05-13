@@ -26,7 +26,7 @@ Domain (sub-folder of `@bb/ingest-github`).
   lockfiles, and binary assets without requiring the seed JSON. Pure
   data; no I/O.
 - `skip-decisions/` — LLM-backed unknown-extension gate. See
-  `skip-decisions/context.md`. Active when `Config.SkipDecisionEnabled =
+  `skip-decisions/README.md`. Active when `Config.SkipDecisionEnabled =
 true` (default). Consumed by `scan.ts` via the optional `skipDecider`
   dep; built by `classifyAndAnalyseSmall` if not injected.
 - `disk-source-reader.ts` — `createDiskSourceReader({ repoDir, commitHash })`

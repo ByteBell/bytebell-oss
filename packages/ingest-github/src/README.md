@@ -1,6 +1,6 @@
 # `@bb/ingest-github/src` — context
 
-Implementation of `@bb/ingest-github`. See [../context.md](../context.md) for
+Implementation of `@bb/ingest-github`. See [../README.md](../README.md) for
 the package-level contract; this file documents how the source tree is split
 under the v2 flat-folder strategy.
 
@@ -25,26 +25,26 @@ Domain (composes infra: `@bb/config`, `@bb/llm`, `@bb/mongo`, `@bb/neo4j`,
   `fetchLatestCommitHash(owner, repo, branch, gitToken?)`. **Pull-only
   utility**; revisit in the pull plan. Kept in place rather than deleted so
   the pull route can be revived without code archaeology.
-- **[context.md](context.md)** — this file.
+- **[README.md](README.md)** — this file.
 
 ## Subtrees
 
-- **[types/](types/context.md)** — type-only barrel + zero-cost factories.
+- **[types/](types/README.md)** — type-only barrel + zero-cost factories.
   `IngestStrategy`, `StrategyInput`, `StrategyResult`, `StrategyContext`,
   `FileAnalyzer` port, `ScanEntry`, `CondensedFileAnalysis`, `BigFileEntry`,
   `MetaPaths`, `emptyFileAnalysis`, `FALLBACK_LANGUAGE`.
-- **[pipeline/](pipeline/context.md)** — orchestration plumbing: clone,
+- **[pipeline/](pipeline/README.md)** — orchestration plumbing: clone,
   scan, filters, branch resolve, bounded concurrency, in-process cancel
   registry, plus `pipeline/run.ts` which is the orchestrator that wraps a
   strategy with state transitions, clone, meta-dir setup, stats persistence,
   and commit anchoring.
-- **[adapters/](adapters/context.md)** — `createLlmFileAnalyzer(deps)`
+- **[adapters/](adapters/README.md)** — `createLlmFileAnalyzer(deps)`
   returns the `FileAnalyzer` port; prompts are injected by the strategy.
-- **[payload/](payload/context.md)** — defensive narrowing of BullMQ
+- **[payload/](payload/README.md)** — defensive narrowing of BullMQ
   payloads and `isEnvelopeCoherent`.
-- **[handlers/](handlers/context.md)** — BullMQ entry shells; pure
+- **[handlers/](handlers/README.md)** — BullMQ entry shells; pure
   validation + delegate to the runner.
-- **[strategies/](strategies/context.md)** — one subfolder per strategy.
+- **[strategies/](strategies/README.md)** — one subfolder per strategy.
   Currently `flat-folder/` (active) and `basic-file-analysis/` (archived).
 
 ## Module dependency graph (abridged)
@@ -109,7 +109,7 @@ Tier flow is strict: `types/` is the leaf; `pipeline/`, `adapters/`,
 2. Implement `IngestStrategy` from `types/strategy.ts` — return a factory
    `create<Name>Strategy(deps): IngestStrategy`.
 3. Wire it from `index.ts` (swap the `createFlatFolderStrategy` call).
-4. Add `strategies/<name>/context.md`.
+4. Add `strategies/<name>/README.md`.
 
 ## Adding a phase to flat-folder
 

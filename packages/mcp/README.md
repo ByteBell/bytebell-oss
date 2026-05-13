@@ -179,7 +179,7 @@ Adding a tool:
    optional Zod field.
 3. Call the new register fn from `buildMcpServer()` in `src/server.ts`.
 4. Wire any new infra dep into `package.json`.
-5. Update _Tools_ + _Files_ in this context and in `src/context.md`.
+5. Update _Tools_ + _Files_ in this context and in `src/README.md`.
 
 Adding a resource:
 

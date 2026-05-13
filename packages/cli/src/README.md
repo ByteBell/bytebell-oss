@@ -1,6 +1,6 @@
 # `@bb/cli/src` — context
 
-Implementation of `@bb/cli`. See [../context.md](../context.md) for the
+Implementation of `@bb/cli`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files

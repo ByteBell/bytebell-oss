@@ -2,7 +2,7 @@
 import { stagedFiles } from "./lib/git.ts";
 import { BOLD, DIM, GREEN, RESET, ok } from "./lib/output.ts";
 import { checkLargeFiles, checkLockfiles, checkMergeMarkers, checkWhitespaceAndEof } from "./lib/checks-staged.ts";
-import { MAX_LINES, checkContextMd, checkFileSize } from "./lib/checks-rules.ts";
+import { MAX_LINES, checkReadme, checkFileSize } from "./lib/checks-rules.ts";
 import { checkSecrets, runLintStaged } from "./lib/checks-tools.ts";
 
 function main(): void {
@@ -29,8 +29,8 @@ function main(): void {
   checkFileSize(files);
   ok(`file size ≤ ${MAX_LINES} lines`);
 
-  checkContextMd(files);
-  ok("context.md presence");
+  checkReadme(files);
+  ok("README.md presence");
 
   checkSecrets();
   ok("secrets scan");

@@ -73,12 +73,12 @@ Applies to `.ts` and `.tsx` files, excluding `.test.ts`, `.spec.ts`, and `.d.ts`
 - **Fix:** split into single-responsibility files before committing.
 - **Source:** [checks-rules.ts:8-40](scripts/lib/checks-rules.ts#L8-L40)
 
-### 6. `context.md` presence
+### 6. `README.md` presence
 
-For every staged file under `packages/<pkg>/...`, the package root and every intermediate directory between the staged file and the package root must contain a `context.md` (either on disk or staged in this commit).
+For every staged file under `packages/<pkg>/...`, the package root and every intermediate directory between the staged file and the package root must contain a `README.md` (either on disk or staged in this commit).
 
 - **Rule:** [CLAUDE.md → Folder Context Rules](CLAUDE.md)
-- **Fix:** create the missing `context.md` describing the directory's contract (responsibilities, public interface, invariants, dependencies, tier) and stage it in the same commit.
+- **Fix:** create the missing `README.md` describing the directory's contract (responsibilities, public interface, invariants, dependencies, tier) and stage it in the same commit.
 - **Source:** [checks-rules.ts:50-80](scripts/lib/checks-rules.ts#L50-L80)
 
 ### 7. Secrets scan (gitleaks)
@@ -131,7 +131,7 @@ feat  fix  refactor  perf  docs  style  test  chore  build  ci  revert
 | `fix`      | A bug fix in shipped behavior.                                       | `fix(mcp): handle empty result set in smart_search`             |
 | `refactor` | Internal restructuring with no behavior change.                      | `refactor(queue): extract worker bootstrap into its own module` |
 | `perf`     | A change whose primary goal is performance.                          | `perf(graph): batch neo4j writes during parse phase`            |
-| `docs`     | Documentation only — `*.md`, JSDoc, `context.md`, `docs/`.           | `docs(arch): clarify cost-ledger lifecycle and reset semantics` |
+| `docs`     | Documentation only — `*.md`, JSDoc, `README.md`, `docs/`.            | `docs(arch): clarify cost-ledger lifecycle and reset semantics` |
 | `style`    | Formatting, whitespace, semicolons — no code-meaning change.         | `style: apply prettier to packages/cli`                         |
 | `test`     | Adding or correcting tests; no production-code change.               | `test(ingest-core): cover phase resume after process restart`   |
 | `chore`    | Housekeeping that doesn't fit elsewhere (deps, scripts, configs).    | `chore(deps): bump bun to 1.1.34`                               |

@@ -10,7 +10,7 @@ no clone — those belong in `pipeline/run.ts`.
   `createLocalIngestHandler(deps)` both return BullMQ-shaped
   `(msg) => Promise<void>` callbacks. They throw `IngestError` on validation
   failures; everything else propagates to BullMQ as the worker's failure path.
-- `context.md` — this file.
+- `README.md` — this file.
 
 ## Invariants
 

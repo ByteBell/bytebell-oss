@@ -115,4 +115,4 @@ To add a new config key:
    `Config.LlmProvider` at completeness-check time).
 5. Add a hint string to `HINTS`.
 6. Add cases to `readField` and `writeField`.
-7. Update this `context.md` if the new key changes invariants or ownership.
+7. Update this `README.md` if the new key changes invariants or ownership.

@@ -1,6 +1,6 @@
 # `@bb/types/src` — context
 
-Implementation of `@bb/types`. See [../context.md](../context.md) for the
+Implementation of `@bb/types`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files
@@ -55,6 +55,6 @@ Pure declarations, no cycles possible.
 
 ## Adding a shared type
 
-Follow the recipe in [../context.md](../context.md) under _How to extend_.
+Follow the recipe in [../README.md](../README.md) under _How to extend_.
 A type is promoted to this folder only when **two or more** packages need
 to refer to the same shape; single-package types stay where they are used.

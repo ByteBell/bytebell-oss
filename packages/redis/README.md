@@ -118,4 +118,4 @@ consumer arrives:
 2. Use `_getRedis()` to obtain the client; never expose the raw `Redis`
    handle to callers.
 3. Re-export the helper (and any new public types) from `src/index.ts`.
-4. Update this `context.md`.
+4. Update this `README.md`.

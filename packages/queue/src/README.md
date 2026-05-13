@@ -1,6 +1,6 @@
 # `@bb/queue/src` — context
 
-Implementation of `@bb/queue`. See [../context.md](../context.md) for the
+Implementation of `@bb/queue`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files
@@ -58,7 +58,7 @@ depends only on `manager.ts`.
   (which closes BullMQ's internal redis connections).
 - **Mongo before BullMQ on enqueue.** Both publishers do
   `setKnowledgeState(_, QUEUED)` then `queue.add(...)`. The ordering is
-  load-bearing — see [../context.md](../context.md) _Invariants_.
+  load-bearing — see [../README.md](../README.md) _Invariants_.
 - **No raw `Queue` leak.** `_getQueue` is not in `index.ts`. Future
   publishers live in this folder and use the internal accessor; consumers
   in higher tiers see only the typed publisher signatures.
@@ -72,7 +72,7 @@ depends only on `manager.ts`.
 
 ## Adding a publisher / worker
 
-Follow the recipes in [../context.md](../context.md) under _How to extend_.
+Follow the recipes in [../README.md](../README.md) under _How to extend_.
 New publishers live as flat files in `src/<job>.ts` (no subdirectories —
 the repo's ESLint rule forbids parent traversal). Compose `_getQueue`,
 `buildJobMessage`, `mapPriority`, `dedupeKey`, and `setKnowledgeState`.
