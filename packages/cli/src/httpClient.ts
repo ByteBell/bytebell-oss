@@ -37,12 +37,17 @@ export async function postJson<T>(routePath: string, body: object): Promise<T> {
   return parseResponse<T>(res);
 }
 
-export async function getJson<T>(routePath: string): Promise<T> {
+export interface GetJsonInit {
+  headers?: Record<string, string>;
+}
+
+export async function getJson<T>(routePath: string, init?: GetJsonInit): Promise<T> {
   const url = `${baseUrl()}${routePath}`;
   let res: Response;
   try {
     res = await fetch(url, {
       method: "GET",
+      ...(init?.headers !== undefined ? { headers: init.headers } : {}),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (cause: unknown) {

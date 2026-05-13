@@ -7,7 +7,9 @@ import { createSpinner, error } from "./output.ts";
 
 interface RepoEntry {
   knowledgeId: string;
-  source: { kind: "github"; repoUrl: string; branch?: string } | { kind: "local"; sourcePath: string };
+  source:
+    | { kind: "github"; repoUrl: string; branch?: string; commitId?: string; commitHashes?: string[] }
+    | { kind: "local"; sourcePath: string };
   state: string;
   createdAt: string;
   updatedAt: string;
@@ -60,12 +62,14 @@ async function runLs(): Promise<void> {
 }
 
 function renderTable(repos: RepoEntry[]): void {
-  const headers = ["ID", "SOURCE", "STATE", "UPDATED", "FILES"];
+  const headers = ["ID", "SOURCE", "STATE", "UPDATED", "HEAD", "COMMITS", "FILES"];
   const rows = repos.map((r) => [
     `${r.knowledgeId.slice(0, 8)}…`,
     formatSource(r.source),
     r.state,
     formatDate(r.updatedAt),
+    formatHead(r.source),
+    formatCommits(r.source),
     String(r.fileCount),
   ]);
   const widths = headers.map((h, i) => Math.max(h.length, ...rows.map((row) => row[i]?.length ?? 0)));
@@ -76,6 +80,23 @@ function renderTable(repos: RepoEntry[]): void {
   for (const row of rows) {
     writeRow(row);
   }
+}
+
+function formatHead(source: RepoEntry["source"]): string {
+  if (source.kind !== "github") {
+    return "-";
+  }
+  if (source.commitId === undefined || source.commitId.length === 0) {
+    return "-";
+  }
+  return source.commitId.slice(0, 8);
+}
+
+function formatCommits(source: RepoEntry["source"]): string {
+  if (source.kind !== "github") {
+    return "-";
+  }
+  return String(source.commitHashes?.length ?? 0);
 }
 
 function formatSource(source: RepoEntry["source"]): string {

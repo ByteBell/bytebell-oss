@@ -14,11 +14,15 @@ package-level contract; this file documents how the source tree is split.
   without taking a dependency on `@bb/config`'s schema/loader/writer
   implementation.
 - **[job.ts](job.ts)** — the queue vocabulary: `JobType` (today: GitHub
-  index + pull), `JobPriority`, the per-type payload interfaces
-  (`GithubIndexPayload`, `GithubPullPayload`), the `JobMessage<P>`
-  envelope wrapping payloads as BullMQ `job.data`, and the `PayloadFor<T>`
-  type-level dispatcher. Shared between `@bb/queue` (publisher) and
-  future `@bb/ingest-*` packages (worker handlers).
+  index + pull, local ingest), `JobPriority`, the per-type payload
+  interfaces (`GithubIndexPayload`, `GithubPullPayload`,
+  `LocalIngestPayload`), the `JobMessage<P>` envelope wrapping payloads
+  as BullMQ `job.data`, and the `PayloadFor<T>` type-level dispatcher.
+  Shared between `@bb/queue` (publisher) and future `@bb/ingest-*`
+  packages (worker handlers). Ingest payloads carry an optional
+  `orgId?: string` override; OSS callers omit it and the pipeline reads
+  `Config.OrgId` from `~/.bytebell/config.json` (locked to `"local"`
+  in OSS builds; downstream enterprise builds set `orgId` per-job).
 - **[knowledge.ts](knowledge.ts)** — the `KnowledgeState` enum modeling
   the lifecycle in [CLAUDE.md](../../../CLAUDE.md). v0 only ships the
   enum; the full `Knowledge` document interface lands when domain CRUD

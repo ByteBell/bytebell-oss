@@ -26,7 +26,9 @@ import {
 
 export interface RepoListEntry {
   knowledgeId: string;
-  source: { kind: "github"; repoUrl: string; branch?: string } | { kind: "local"; sourcePath: string };
+  source:
+    | { kind: "github"; repoUrl: string; branch?: string; commitId?: string; commitHashes?: string[] }
+    | { kind: "local"; sourcePath: string };
   state: string;
   createdAt: string;
   updatedAt: string;
@@ -96,8 +98,21 @@ function toSelectorItem(repo: RepoListEntry): RepoSelectorItem {
   return {
     knowledgeId: repo.knowledgeId,
     label: formatSourceLabel(repo.source),
-    detail: `${repo.state}  ${repo.knowledgeId.slice(0, 8)}…  ${repo.fileCount} files`,
+    detail: formatDetail(repo),
   };
+}
+
+function formatDetail(repo: RepoListEntry): string {
+  const idChunk = `${repo.knowledgeId.slice(0, 8)}…`;
+  if (repo.source.kind !== "github") {
+    return `${repo.state}  ${idChunk}  ${repo.fileCount} files`;
+  }
+  const head =
+    repo.source.commitId !== undefined && repo.source.commitId.length > 0
+      ? `head=${repo.source.commitId.slice(0, 8)}`
+      : "head=-";
+  const commits = `${repo.source.commitHashes?.length ?? 0} commits`;
+  return `${repo.state}  ${idChunk}  ${head}  ${commits}  ${repo.fileCount} files`;
 }
 
 function formatSourceLabel(source: RepoListEntry["source"]): string {

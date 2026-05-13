@@ -13,7 +13,7 @@ export {
 export type { KnowledgeListEntry, DeleteKnowledgeResult } from "./knowledge.ts";
 
 export { upsertRawFile, listRawFileShas, deleteRawFiles } from "./raw.ts";
-export type { FileAnalysis, RawFileDoc } from "./raw.ts";
+export type { FileAnalysis, FileAnalysisSection, RawFileDoc } from "./raw.ts";
 
 export { recordProcessingStats, aggregateStats } from "./processingStats.ts";
 export type { RecordProcessingStatsInput } from "./processingStats.ts";

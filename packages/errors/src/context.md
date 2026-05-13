@@ -43,7 +43,11 @@ package-level contract; this file documents how the source tree is split.
   via the local `redactUrl` helper), `IngestError` (catch-all worker
   failure; carries `knowledgeId` and an optional `cause`),
   `IngestPathError` (CLI pre-flight when `bytebell ingest <path>` is
-  given a non-existent or non-directory path).
+  given a non-existent or non-directory path), `CancellationError`
+  (cooperative cancellation signal thrown by `throwIfCancelled` between
+  phases of the flat-folder strategy; carries `knowledgeId`. The
+  orchestrator catches it, clears the cancellation flag, and returns
+  _without_ flipping Mongo state to FAILED).
 - **[server-errors.ts](server-errors.ts)** — errors thrown by `@bb/server`
   at boot. Today: `ServerConfigError` (missing required config keys;
   carries `missing[]` + the corresponding `bytebell set …` hints).

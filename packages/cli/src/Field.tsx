@@ -9,10 +9,11 @@ export interface FieldProps {
   onChange: (next: string) => void;
   mask?: boolean;
   error?: string;
+  autoFocus?: boolean;
 }
 
-export function Field({ id, label, value, onChange, mask, error }: FieldProps): ReactElement {
-  const { isFocused } = useFocus({ id });
+export function Field({ id, label, value, onChange, mask, error, autoFocus }: FieldProps): ReactElement {
+  const { isFocused } = useFocus({ id, autoFocus: autoFocus === true });
   const indicator = isFocused ? "▶" : " ";
   const labelProps = isFocused ? { color: "cyan" } : {};
   const masked = mask === true;

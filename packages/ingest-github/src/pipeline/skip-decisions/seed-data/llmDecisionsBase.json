@@ -1,0 +1,2762 @@
+{
+  "directories": {
+    ".ammonite": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".appveyor": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".atom": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".aws": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".azure": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".backup": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bamboo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bandit": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bingo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".black_cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bloop": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bower": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".brackets": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".buddy": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".buildkite": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bundle": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bzr": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cargo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".changeset": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".chloggen": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".circleci": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".codefresh": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".codeship": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".coursier": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cursor": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cypress": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dart_tool": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".datadog": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".devcontainer": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".docker": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".docusaurus": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".doom.d": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dotnet": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".drone": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eas": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eclipse": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".emacs.d": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eslintcache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".expo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".flutter-plugins": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".flutter-plugins-dependencies": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".fossil-settings": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gcloud": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gem": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".git": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".github": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gitlab": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gnupg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gradle": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".harness": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".hex": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".hg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".history": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".husky": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".idea": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ipynb_checkpoints": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ivy2": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jenkins": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jest": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jspm": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".karma": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".kube": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".kubernetes": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lein": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lerna": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".less-cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lighthouse": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".m2": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mercurial": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".metals": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mix": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mocha": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mypy_cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".netbeans": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".newrelic": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".next": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".nox": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".npm": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".nuxt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".nyc_output": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".old": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".output": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".packages": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".parcel-cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pip": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".playwright": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pnpm": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".postcss-cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".prettiercache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pub-cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pytest_cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rbenv": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rollup.cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rpt2_cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rts2_cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ruby-build": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ruff_cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rush": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rvm": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".safety": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".sass-cache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".sbt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".scala-build": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".semaphore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".sentry": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".settings": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".size-limit": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".spacemacs.d": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ssh": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".stack-work": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".storybook-out": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".stylelintcache": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".sublime": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".svn": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".teamcity": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".terraform": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tmp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tox": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".travis": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".turbo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".venv": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".vim": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".vite": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".vs": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".vscode": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".webpack": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".wercker": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".yarn": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CHANGELOG": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Library": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Temp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "TestResults": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "__fixtures__": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "__mocks__": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "__pycache__": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "__snapshots__": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "_build": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "_generated": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "_site": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "allure-report": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "allure-results": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "auto-generated": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "bower_components": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "certificates": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "certs": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "changelogs": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "cmake-build-debug": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "cmake-build-release": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "coverage": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "dist-packages": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "docs/_build": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "elm-stuff": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "gems": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "htmlcov": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "i18n": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jsdoc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jspm_packages": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "keys": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "locale": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "locales": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "node_modules": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "screenshots": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "secrets": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "site-packages": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "sphinx": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "storybook-static": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "temp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "test-results": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "test_results": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "testresults": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "third-party": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "third_party": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "tmp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "translations": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "typedoc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "typings": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "vendor": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "venv": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "videos": {
+      "ignore": true,
+      "source": "hardcoded"
+    }
+  },
+  "extensions": {
+    ".7z": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".Z": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".a": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".aar": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".accdb": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ai": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".aif": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".aiff": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".app": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".appx": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ar": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".arrow": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".asset": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".avi": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".avro": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".backup": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bak": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bin": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".blend": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bmp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".br": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bz2": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cab": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cer": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ckpt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".class": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".core": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cpio": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".crt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".crx": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".css.map": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".csv": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dae": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".db": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".db3": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".deb": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dex": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dll": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dmg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dmp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dump": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dylib": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ear": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".egg-info": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eot": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".excalidraw": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".exe": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".fbx": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".feather": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".fig": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".flac": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".flatpak": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".fnt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".fon": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gem": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gif": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".glb": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gltf": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".h5": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".hdf5": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".heic": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".heif": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ico": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jar": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jks": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".joblib": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jpeg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jpg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".js.map": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jsx.map": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".key": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".keystore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lib": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".log": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lrz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lz4": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lzma": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".lzo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".m2ts": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".m4a": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".m4v": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mdb": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mkv": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mov": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mp3": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mp4": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".msgpack": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".msi": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mts": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".npz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".nupkg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".o": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".obj": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ogg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".onnx": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".orc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".orig": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".otf": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".p12": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pak": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".parq": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".parquet": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pb": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pbmm": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pdf": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pem": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pfx": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pickle": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pkg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pkl": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".png": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".po": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pot": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ppt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pptx": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".proto": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".psd": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pth": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pyc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".pyo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rar": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rej": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rlib": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rpm": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".sketch": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".snap": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".so": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".sql.gz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".sqlite": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".sqlite3": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".stacktrace": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".svg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".swo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".swp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tar": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tar.gz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".taz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tbz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tbz2": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tflite": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tgz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tif": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tiff": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tlz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tmp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".truststore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ts.map": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tsv": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ttf": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".txz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tzo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tzst": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".unitypackage": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".vsix": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".vue.map": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".war": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".wasm": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".wav": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".webm": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".webp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".whl": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".woff": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".woff2": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".xd": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".xlf": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".xliff": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".xpi": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".xz": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".z": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".zip": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".zipx": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".zlib": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".zst": {
+      "ignore": true,
+      "source": "hardcoded"
+    }
+  },
+  "filenames": {
+    ".AppleDouble": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".DS_Store": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".DocumentRevisions-V100": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".LSOverride": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".Spotlight-V100": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".TemporaryItems": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".Trashes": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".VolumeIcon.icns": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".atom": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".babelrc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".babelrc.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".brackets.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".bzrignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".classpath": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".com.apple.timemachine.donotpresent": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".coverage": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".coveragerc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cursor": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".cvsignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".dockerignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eclipse": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".editorconfig": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".env": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".env.development": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".env.example": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".env.local": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".env.production": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".env.staging": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".env.test": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eslintignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eslintrc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eslintrc.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eslintrc.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eslintrc.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".eslintrc.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".flowconfig": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".fseventsd": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".git-blame-ignore-revs": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gitattributes": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gitignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gitkeep": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gitlab-ci.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".gitmodules": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".go-version": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".helmignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".hgignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".java-version": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jscsrc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".jshintrc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".mailmap": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".metadata": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".netbeans": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".netrwhist": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".node-version": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".nvmrc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".php-version": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".prettierignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".prettierrc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".prettierrc.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".prettierrc.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".project": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".python-version": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".recommenders": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rspec": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".rubocop.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".ruby-version": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".stylelintignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".stylelintrc": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".stylelintrc.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".svnignore": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".swift-version": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".tool-versions": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".travis.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".viminfo": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".windsurf": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".yanrc.yml.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".yarnrc.build.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "ACKNOWLEDGMENTS": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "AUTHORS": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "AUTHORS.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "BASEIMAGE": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CHANGELOG": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CHANGELOG.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CHANGES": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CHANGES.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CODEOWNERS": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CODE_OF_CONDUCT.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CODE_OF_CONDUCT.txt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CONTRIBUTING.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CONTRIBUTORS": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CONTRIBUTORS.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "COPYING": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "CREDITS": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Cargo.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Cargo.toml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Chart.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Chart.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Dockerfile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "FAQ.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "FUNDING.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "GNUmakefile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Gemfile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Gemfile.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "HISTORY.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "INSTALL": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Jenkinsfile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "LICENSE": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "LICENSE.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "LICENSE.txt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "MAINTAINERS": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "MAINTAINERS.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "MANIFEST": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "MANIFEST.in": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Makefile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "NOTICE": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "NOTICE.txt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "OWNERS": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "OWNERS_ALIASES": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "PKG-INFO": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Package.swift": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Pipfile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Pipfile.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Podfile.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Procfile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "SECURITY.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "SUPPORT.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Session.vim": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "THANKS": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "TROUBLESHOOTING.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Thumbs.db": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Tiltfile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "UPGRADING.md": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "USAGE": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "VERSION": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Vagrantfile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "_helpers.tpl": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "access.log": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "api-docs.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "app.config": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "app.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "app.log": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "app.min.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "application.properties": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "application.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "application.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "appveyor.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "astro.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "azure-pipelines.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "babel.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "bitbucket-pipelines.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "bootstrap.properties": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "build.gradle": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "build.gradle.kts": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "build.sbt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "buildspec.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "bun.lockb": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "bundle.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "bundle.min.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "cloudbuild.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "codecov.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "combined.log": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "composer.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "composer.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "conda.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "coverage.xml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "crash.log": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "credentials.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "cypress.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "cypress.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "debug.log": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "deps.edn": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "desktop.ini": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "docker-compose.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "docker-compose.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "drone.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "ehthumbs.db": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "environment.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "error.log": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "go.mod": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "go.sum": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "ivy.xml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jest.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jest.config.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jest.config.mjs": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jest.config.ts": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jest.setup.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jest.setup.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "jest.setup.ts": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "junit.xml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "karma.conf.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "lerna.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "main.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "main.min.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "makefile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "messages.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "next.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "nuxt.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "package-lock.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "package.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "playwright.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "pnpm-lock.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "poetry.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "polyfills.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "pom.xml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "postcss.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "prettier.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "project.clj": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "protractor.conf.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "pubspec.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "pubspec.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "pyproject.toml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "pytest.ini": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "redoc-static.html": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "requirements.txt": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "rollup.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "runtime.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "secrets.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "service-account.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "setup.cfg": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "setup.py": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "skaffold.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "storybook.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "svelte.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "swagger-ui": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "tailwind.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "test-results.xml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "tox.ini": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "translations.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "tsconfig.app.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "tsconfig.base.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "tsconfig.declaration.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "tsconfig.spec.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "values.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "vendor.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "vendor.min.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "vitest.config.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "vitest.config.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "web.config": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "yarn.lock": {
+      "ignore": true,
+      "source": "hardcoded"
+    }
+  },
+  "filename_globs": {
+    "**/*-compiled-*/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-compiled/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-generated.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-generated.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-mixin-*/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-csharp/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-dotnet/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-go/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-java/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-js/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-php/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-python/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-ruby/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*-sdk-ts/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*.gen.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*.gen.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*.gen.ts": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*.pb.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*.pb.ts": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*.spec.*": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*_fake.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*_generated.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*_generated.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*_generated.ts": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*_grpc.py": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*_mock.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/*_pb2.py": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/.*": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/__fixtures__/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/__mocks__/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/api_*.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/compiled-*/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/config-descriptor.json": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/fake_*.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/fixtures/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/go-sdk/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/java-sdk/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/mock_*.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/mocks/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/openapi/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/python-sdk/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/sdk-go/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/swagger/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/test-data/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/test_data/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/testdata/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/zz_generated*.go": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "**/zz_generated*.py": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.bicep": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.bundle.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.bundle.js.map": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.chunk.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.chunk.js.map": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.dockerfile": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.encrypted": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.gotmpl": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.iml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.ipr": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.iws": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.min.css": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.min.js": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.min.js.map": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.save": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.secrets": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.spec.js.snap": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.sublime-project": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.sublime-workspace": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.temp": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.test.js.snap": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.tfplan": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.tfstate": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.tfvars": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*.tpl": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*_backup": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*_old": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "*~": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".#*": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".*": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".*.sw?": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".*/**": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    ".env.*": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Dockerfile.*": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "Untitled*.ipynb": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "docker-compose.*.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "docker-compose.*.yml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "npm-debug.log*": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "values-*.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "values.*.yaml": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "yarn-debug.log*": {
+      "ignore": true,
+      "source": "hardcoded"
+    },
+    "yarn-error.log*": {
+      "ignore": true,
+      "source": "hardcoded"
+    }
+  }
+}
