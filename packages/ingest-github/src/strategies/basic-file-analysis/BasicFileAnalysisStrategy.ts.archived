@@ -1,3 +1,18 @@
+// SPDX-License-Identifier: AGPL-3.0-only WITH non-commercial-clause
+//
+// =====================================================================
+// ARCHIVED — v1 strategy. Superseded by `strategies/flat-folder/`.
+// =====================================================================
+//
+// The file extension `.archived` keeps this out of the TypeScript build.
+// Kept verbatim for reference: a future strategy author can read the v1
+// shape (single-pass per-file LLM, no folder/repo summaries, no big-file
+// chunking, diff-mode for pull) before deciding what to bring forward.
+//
+// Do NOT re-export this from `index.ts`. Do NOT depend on imports below
+// resolving in this directory.
+// =====================================================================
+
 import { createHash } from "node:crypto";
 import { Config, type ModelTokenBreakdown } from "@bb/types";
 import { getConfigValue } from "@bb/config";

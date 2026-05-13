@@ -1,0 +1,37 @@
+# `@bb/ingest-github/src/strategies/flat-folder/big-file`
+
+Splits oversized source files into line-aligned chunks, analyses each chunk
+under bounded concurrency, persists chunk and manifest artifacts on disk
+(resume-safe), and condenses the per-chunk analyses into a single
+`CondensedFileAnalysis` via deterministic dedup or recursive LLM map-reduce
+depending on chunk count and prompt budget.
+
+## Files
+
+- `detector.ts` — `classifyByTokens`, `buildBigFileEntry`, plus the on-disk
+  `bigFiles.json` reader / writer / appender (dedupe-by-path on write).
+- `chunker.ts` — `splitFileIntoChunks` (line-aligned, ≤ `MaxTokensPerChunk`).
+- `chunk-analyzer.ts` — `analyzeChunk(chunk)` calls `askJsonLLM` with the
+  chunk prompt; tolerates failures by returning an empty analysis.
+- `condenser.ts` — `condenseChunks(relativePath, chunks)`:
+  ≤ `SmallFileDedupThreshold` → deterministic merge (no LLM);
+  above → recursive map-reduce. Per-condense LLM failure falls back to
+  deterministic dedup so recursion always terminates.
+- `storage.ts` — on-disk cache (chunk JSON, manifest, condensed analysis) +
+  `iterateCondensed(metaPaths)` async iterator used by Phase 5.
+- `cache.ts` — `inspect(metaPaths, relativePath)` returns `complete`,
+  `stale-condensed`, or `missing`. Used by Phase 2 to short-circuit and by
+  Phase 4 to find candidates for cheap re-condense.
+- `index.ts` — `processBigFile({knowledgeId, metaPaths, relativePath, content,
+sizeBytes})`. Sequential per file (chunk-level concurrency inside).
+  Persists every intermediate artifact, so a restart resumes from the next
+  unfinished chunk.
+
+## Invariants
+
+- One big file at a time. Concurrency lives at the chunk level inside
+  `processBigFile`, never across files, to bound peak memory.
+- Every artifact is durable on disk before the next step. The chunk cache
+  short-circuits on re-runs; the manifest plus condensed JSON are the
+  Phase 7 graph-store inputs.
+- Cancellation is checked between chunks (`throwIfCancelled(knowledgeId)`).

@@ -1,0 +1,29 @@
+# `@bb/ingest-github/src/strategies/flat-folder/prompts`
+
+Every LLM prompt the flat-folder strategy uses, with the field-block constant
+as the single source of truth so file / chunk / condense prompts can never
+drift apart.
+
+## Files
+
+- `file-analysis-fields.ts` — `FILE_ANALYSIS_FIELDS_BLOCK`. Authoritative list
+  of the JSON keys + per-field instructions. Imported by every other prompt.
+- `file-analysis.ts` — single-call per-file prompt
+  (`COMBINED_CODE_ANALYSIS_SYSTEM_PROMPT` + `buildFileAnalysisUserPrompt`).
+- `chunk.ts` — per-chunk prompt for the big-file path. Identical field block,
+  scoped to "this chunk only".
+- `condense.ts` — recursive condense prompt with merge rules.
+- `folder-summary.ts` — `FOLDER_ANALYSIS_SYSTEM_PROMPT` + `folderAnalysisUserPrompt`.
+  Flat: only direct children of a folder are passed in.
+- `repo-summary.ts` — `REPO_SUMMARY_SYSTEM_PROMPT`, `buildRepoPromptFromFolders`,
+  `buildRepoMergePrompt`, `repoFolderInfosFrom`.
+- `backfill.ts` — `BACKFILL_SYSTEM_PROMPT` + `buildBackfillUserPrompt`,
+  used by the phase-3 backfill pass under `../backfill/fields.ts` to
+  re-derive `keywords`, `sideEffects`, `configDependencies`, and
+  `dataFlowDirection` when condense leaves them empty.
+
+## Invariants
+
+- Prompts are pure functions of typed inputs. No I/O, no LLM calls, no Mongo.
+- The field block lives in one file. Any change to the JSON schema starts here.
+- Prompts never depend on `pipeline/`, `adapters/`, or `handlers/`.

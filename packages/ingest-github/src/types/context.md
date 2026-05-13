@@ -1,0 +1,33 @@
+# `@bb/ingest-github/src/types`
+
+Type-only barrel for the flat-folder ingestion package. No runtime code beyond
+`emptyFileAnalysis()` and the `FALLBACK_LANGUAGE` constant.
+
+## Tier
+
+Domain (sub-folder of `@bb/ingest-github`).
+
+## Files
+
+- `strategy.ts` — `IngestStrategy`, `StrategyInput`, `StrategyResult`,
+  `StrategyContext`. The strategy port the orchestrator dispatches to.
+- `pipeline.ts` — `ScannedFile`, `OversizedFile`, `ScanEntry`, `FileAnalyzer`
+  port, `AnalyzedFileResult`, `PipelineDeps`, `PipelineSummary`.
+- `meta-paths.ts` — `MetaPaths` shape (`~/.bytebell/repos/.meta/<knowledgeId>/...`).
+- `file-analysis.ts` — `FALLBACK_LANGUAGE = "unknown"` and `emptyFileAnalysis()`
+  factory. Both consumed by the LLM adapter and the big-file condenser.
+- `condensed-file-analysis.ts` — `CondensedFileAnalysis` is the on-disk record
+  written under `<metaPaths.fileAnalysisDir>/<encodedPath>.json` after Phase 1
+  and Phase 2; the inter-phase contract that lets Phase 3+ resume after a crash.
+- `big-file.ts` — `BigFileEntry`, `BigFileReason`, `FileChunk`,
+  `ChunkAnalysisResult`, `HugeFileManifest`. The shapes used by `bigFiles.json`
+  and the chunk/manifest cache under `<metaPaths.bigFileAnalysisDir>`.
+- `ingest-runner.ts` — `IngestRunnerDeps` shape the orchestrator + handler share.
+- `index.ts` — barrel.
+
+## Invariants
+
+- Only types live here, with the single exception of `emptyFileAnalysis()` and
+  `FALLBACK_LANGUAGE` which are zero-cost constants/factories.
+- No file in this folder may import from `pipeline/`, `strategies/`, or
+  `adapters/` — the tier flow is one-way from types outward.

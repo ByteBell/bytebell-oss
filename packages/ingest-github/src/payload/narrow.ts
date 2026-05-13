@@ -27,6 +27,10 @@ export function narrowGithubIngest(knowledgeId: string, payload: unknown): Githu
   if (typeof gitToken === "string" && gitToken.length > 0) {
     out.gitToken = gitToken;
   }
+  const orgId = rec["orgId"];
+  if (typeof orgId === "string" && orgId.length > 0) {
+    out.orgId = orgId;
+  }
   return out;
 }
 
@@ -43,7 +47,12 @@ export function narrowLocalIngest(knowledgeId: string, payload: unknown): LocalI
   if (typeof rootDir !== "string" || rootDir.length === 0) {
     throw new IngestError(knowledgeId, "local_ingest payload missing rootDir");
   }
-  return { knowledgeId: kid, rootDir };
+  const out: LocalIngestPayload = { knowledgeId: kid, rootDir };
+  const orgId = rec["orgId"];
+  if (typeof orgId === "string" && orgId.length > 0) {
+    out.orgId = orgId;
+  }
+  return out;
 }
 
 export function isEnvelopeCoherent(jobKnowledgeId: string, payloadKnowledgeId: string): boolean {

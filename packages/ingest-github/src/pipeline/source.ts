@@ -6,23 +6,40 @@ import { GitCloneError } from "@bb/errors";
 
 const exec = promisify(execFile);
 
-export interface CloneOptions {
+export interface SyncRepositoryInput {
   repoUrl: string;
   branch: string;
-  destDir: string;
+  destinationDir: string;
   gitToken?: string;
 }
 
-export async function gitClone(opts: CloneOptions): Promise<void> {
-  const authedUrl = applyToken(opts.repoUrl, opts.gitToken);
-  if (await isGitRepo(opts.destDir)) {
-    await fetchAndReset(opts.destDir, authedUrl, opts.branch, opts.repoUrl);
+export async function syncRepository(input: SyncRepositoryInput): Promise<void> {
+  const authedUrl = applyToken(input.repoUrl, input.gitToken);
+  if (await isGitRepo(input.destinationDir)) {
+    await fetchAndReset(input.destinationDir, authedUrl, input.branch, input.repoUrl);
     return;
   }
   try {
-    await exec("git", ["clone", "--depth=1", "--single-branch", "--branch", opts.branch, authedUrl, opts.destDir]);
+    await exec("git", [
+      "clone",
+      "--depth=1",
+      "--single-branch",
+      "--branch",
+      input.branch,
+      authedUrl,
+      input.destinationDir,
+    ]);
   } catch (cause: unknown) {
-    throw new GitCloneError(opts.repoUrl, cause);
+    throw new GitCloneError(input.repoUrl, cause);
+  }
+}
+
+export async function readHeadCommitHash(repoDir: string): Promise<string> {
+  try {
+    const { stdout } = await exec("git", ["-C", repoDir, "rev-parse", "HEAD"]);
+    return stdout.trim();
+  } catch {
+    return "unknown";
   }
 }
 
