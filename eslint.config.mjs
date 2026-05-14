@@ -7,7 +7,16 @@ import globals from "globals";
 /** @type {import("eslint").Linter.Config[]} */
 export default [
   {
-    ignores: ["node_modules/**", "dist/**", "build/**", "out/**", "coverage/**", "**/*.d.ts", ".husky/_/**", "docs/**"],
+    ignores: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/out/**",
+      "**/coverage/**",
+      "**/*.d.ts",
+      ".husky/_/**",
+      "docs/**",
+    ],
   },
 
   js.configs.recommended,
