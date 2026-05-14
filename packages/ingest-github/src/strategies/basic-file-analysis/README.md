@@ -18,7 +18,7 @@ pull plan may or may not bring it forward.
 ## Files
 
 - `BasicFileAnalysisStrategy.ts.archived` — verbatim v1 source. Not compiled.
-- `context.md` — this file.
+- `README.md` — this file.
 
 ## Invariants
 

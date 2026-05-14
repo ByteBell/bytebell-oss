@@ -1,6 +1,6 @@
 # `@bb/server/src` — context
 
-Implementation of `@bb/server`. See [../context.md](../context.md) for the
+Implementation of `@bb/server`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files
@@ -110,6 +110,6 @@ No cycles.
 
 ## Adding a route
 
-Follow the recipe in [../context.md](../context.md) under _How to
+Follow the recipe in [../README.md](../README.md) under _How to
 extend_. New files live as flat `src/<name>Route.ts` (the repo ESLint
 rule forbids parent traversal — keep `src/` flat).

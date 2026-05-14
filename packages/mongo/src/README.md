@@ -1,6 +1,6 @@
 # `@bb/mongo/src` — context
 
-Implementation of `@bb/mongo`. See [../context.md](../context.md) for the
+Implementation of `@bb/mongo`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files
@@ -77,7 +77,7 @@ the two helpers composing `_getDb()` today.
 
 ## Adding a CRUD helper
 
-Follow the recipe in [../context.md](../context.md) under _How to extend_.
+Follow the recipe in [../README.md](../README.md) under _How to extend_.
 New files live as flat `src/<name>.ts` (the repo ESLint rule forbids
 parent traversal, so subdirectories require import gymnastics — keep
 `src/` flat unless the package outgrows it). The helper composes

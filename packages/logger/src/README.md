@@ -1,6 +1,6 @@
 # `@bb/logger/src` — context
 
-Implementation of `@bb/logger`. See [../context.md](../context.md) for the
+Implementation of `@bb/logger`. See [../README.md](../README.md) for the
 package-level contract.
 
 ## Files

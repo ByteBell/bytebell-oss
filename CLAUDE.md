@@ -185,9 +185,9 @@ Every contributor — human or AI agent — must, before making any change:
 
 1. Read this `CLAUDE.md` end-to-end at least once per session.
 2. Read [docs/arch.md](docs/arch.md) when working on architecture, ingestion flow, or distribution.
-3. Read the `context.md` of every package and folder you will modify, plus the `context.md` of every package you import from.
-4. If a `context.md` is missing where one is required, stop and create it (or flag it) before making changes.
-5. If the code contradicts `context.md`, treat `context.md` as authoritative for _intent_ — investigate the drift and update one or the other in the same PR. Never silently align one to the other.
+3. Read the `README.md` of every package and folder you will modify, plus the `README.md` of every package you import from.
+4. If a `README.md` is missing where one is required, stop and create it (or flag it) before making changes.
+5. If the code contradicts `README.md`, treat `README.md` as authoritative for _intent_ — investigate the drift and update one or the other in the same PR. Never silently align one to the other.
 
 Skipping exploration is the most common cause of tier violations, duplicated logic, and broken invariants.
 
@@ -370,17 +370,17 @@ To add a package:
 2. Add `tsconfig.json` extending `../../tsconfig.base.json`
 3. Add it to the root `tsconfig.json` `references` array
 4. Declare workspace deps explicitly in `package.json`
-5. Create `context.md` describing the package's contract (see below)
+5. Create `README.md` describing the package's contract (see below)
 
-A package without `context.md` is not allowed.
+A package without `README.md` is not allowed.
 
 ---
 
-# Folder Context Rules (`context.md`)
+# Folder Context Rules (`README.md`)
 
-Every package and every major subfolder MUST contain a `context.md`.
+Every package and every major subfolder MUST contain a `README.md`.
 
-`context.md` defines the operational contract:
+`README.md` defines the operational contract:
 
 - Responsibilities
 - Public interfaces (exports)
@@ -389,7 +389,7 @@ Every package and every major subfolder MUST contain a `context.md`.
 - External dependencies
 - Tier (kernel / infra / strategy / domain / binary)
 
-**Before modifying a folder**, read its `context.md`. **When code changes**, update `context.md` in the same PR. PRs are rejected if `context.md` is missing, stale, or contradicts the code.
+**Before modifying a folder**, read its `README.md`. **When code changes**, update `README.md` in the same PR. PRs are rejected if `README.md` is missing, stale, or contradicts the code.
 
 ---
 

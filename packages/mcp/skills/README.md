@@ -54,7 +54,7 @@ server restart required.
 1. Create `skills/<skillName>/SKILL.md` with YAML frontmatter
    (`name`, `description`, `user-invocable`, `argument-hint`).
 2. Add per-task files (`<topic>.md`) referenced from `SKILL.md`.
-3. Add a `context.md` to the new `skills/<skillName>/` directory
-   following the existing `bytebell/context.md` template.
+3. Add a `README.md` to the new `skills/<skillName>/` directory
+   following the existing `bytebell/README.md` template.
 4. Restart the MCP server is **not** required — the index rebuilds
    from disk per request.

@@ -47,7 +47,7 @@ function packageRootOf(path: string): string | null {
   return `packages/${parts[1]}`;
 }
 
-export function checkContextMd(files: string[]): void {
+export function checkReadme(files: string[]): void {
   const required = new Set<string>();
   for (const p of files) {
     const pkgRoot = packageRootOf(p);
@@ -56,7 +56,7 @@ export function checkContextMd(files: string[]): void {
     }
     let dir = dirname(p);
     while (dir.startsWith(pkgRoot) || dir === pkgRoot) {
-      required.add(`${dir}/context.md`);
+      required.add(`${dir}/README.md`);
       if (dir === pkgRoot) {
         break;
       }
@@ -72,10 +72,10 @@ export function checkContextMd(files: string[]): void {
     return;
   }
   fail({
-    name: "Missing context.md",
+    name: "Missing README.md",
     rule: "CLAUDE.md → Folder Context Rules",
     files: missing.map((p) => ({ path: p })),
-    fix: "Every directory under packages/<pkg>/ containing code must have a context.md describing its contract.",
+    fix: "Every directory under packages/<pkg>/ containing code must have a README.md describing its contract.",
   });
 }
 

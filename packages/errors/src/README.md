@@ -1,6 +1,6 @@
 # `@bb/errors/src` — context
 
-Implementation of `@bb/errors`. See [../context.md](../context.md) for the
+Implementation of `@bb/errors`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files
@@ -95,7 +95,7 @@ No cross-file imports inside the package; no cycles possible.
 
 ## Adding an error class
 
-Follow the recipe in [../context.md](../context.md) under _How to extend_.
+Follow the recipe in [../README.md](../README.md) under _How to extend_.
 The new class lives in `src/<area>-errors.ts` (create the file if the area
 is new), is re-exported from `index.ts`, and the throwing package adds
 `@bb/errors` to its `dependencies`.

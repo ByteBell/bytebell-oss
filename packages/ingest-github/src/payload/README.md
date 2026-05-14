@@ -14,7 +14,7 @@ re-validates because:
 ## Files
 
 - `narrow.ts` — `narrowGithubIngest`, `narrowLocalIngest`, `isEnvelopeCoherent`.
-- `context.md` — this file.
+- `README.md` — this file.
 
 ## Invariants
 
@@ -26,4 +26,4 @@ re-validates because:
   particular, `orgId` is preserved when the payload carries it (downstream
   enterprise builds set it per-job); when absent, the pipeline falls back
   to `Config.OrgId` from `~/.bytebell/config.json` (locked to `"local"` in
-  OSS — see `@bb/config/src/context.md`).
+  OSS — see `@bb/config/src/README.md`).

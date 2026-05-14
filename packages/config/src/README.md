@@ -1,6 +1,6 @@
 # `@bb/config/src` — context
 
-Implementation of `@bb/config`. See [../context.md](../context.md) for the
+Implementation of `@bb/config`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files

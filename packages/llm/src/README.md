@@ -1,6 +1,6 @@
 # `@bb/llm/src` — context
 
-Implementation of `@bb/llm`. See [../context.md](../context.md) for the
+Implementation of `@bb/llm`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 ## Files
@@ -82,6 +82,6 @@ pricing).
 
 ## Adding a helper
 
-Follow the recipes in [../context.md](../context.md) under _How to
+Follow the recipes in [../README.md](../README.md) under _How to
 extend_. New files live as flat `src/<name>.ts` (the repo ESLint rule
 forbids parent traversal — keep `src/` flat).

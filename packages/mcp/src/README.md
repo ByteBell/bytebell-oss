@@ -1,6 +1,6 @@
 # `@bb/mcp/src` — context
 
-Implementation of `@bb/mcp`. See [../context.md](../context.md) for the
+Implementation of `@bb/mcp`. See [../README.md](../README.md) for the
 package-level contract; this file documents how the source tree is split.
 
 `src/` is flat — no subdirectories. The repo-wide rule against parent
