@@ -23,14 +23,14 @@ function resolveOrgId(payload: { orgId?: string }): string {
 
 function llmCallContextFromPayload(payload: {
   llmApiKey?: string;
-  llmProvider?: "openrouter" | "ollama";
+  llmProvider?: string;
   llmModel?: string;
 }): AskLlmOptions | undefined {
   const ctx: AskLlmOptions = {};
   if (payload.llmApiKey !== undefined && payload.llmApiKey.length > 0) {
     ctx.apiKey = payload.llmApiKey;
   }
-  if (payload.llmProvider !== undefined) {
+  if (payload.llmProvider === "openrouter" || payload.llmProvider === "ollama") {
     ctx.provider = payload.llmProvider;
   }
   if (payload.llmModel !== undefined && payload.llmModel.length > 0) {
@@ -141,6 +141,11 @@ async function runGithub(
     });
     await setKnowledgeCommit(knowledgeId, commitHash);
     await transitionState(knowledgeId, KnowledgeState.Processed);
+
+    const totalMs = Date.now() - startedAt;
+    logger.info(
+      `pipeline/run: ✓ github_index complete (knowledgeId=${knowledgeId}, commit=${commitHash.slice(0, 12)}, files=${result.filesAnalyzed}, folders=${result.foldersSummarised}, nodes=${result.graphNodesWritten}, ${totalMs}ms)`,
+    );
 
     return {
       filesAnalyzed: result.filesAnalyzed,

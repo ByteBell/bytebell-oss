@@ -51,10 +51,15 @@ export function buildGithubCommitsRoute(): Router {
         .json({ error: `commits endpoint is only supported for github knowledge (kind=${knowledge.source.kind})` });
       return;
     }
-    const branch = knowledge.source.branch ?? "main";
+    const branch = knowledge.info.branch ?? "main";
+    const repoUrl = knowledge.info.repoUrl;
+    if (repoUrl === undefined || repoUrl.length === 0) {
+      res.status(422).json({ error: "commits endpoint requires knowledge.info.repoUrl" });
+      return;
+    }
     const gitToken = extractBearerToken(req.headers["authorization"]);
 
-    const result = await fetchRecentCommits(knowledge.source.repoUrl, branch, limit, gitToken);
+    const result = await fetchRecentCommits(repoUrl, branch, limit, gitToken);
     switch (result.status) {
       case "ok": {
         const payload: CommitsResponse = { knowledgeId, branch, commits: result.commits };

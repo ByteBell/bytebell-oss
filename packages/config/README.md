@@ -40,8 +40,23 @@ function getBytebellHome(): string
 function getConfigPath(): string
 function ensureBytebellHome(): void
 
+function seedConfig(value: unknown): BytebellConfig
+function __isSeeded(): boolean
+class ConfigSeededError extends Error
+
+function __resetSeedForTests(): void                            // test-only
 function __setBytebellHomeForTests(home: string | null): void  // test-only
 ```
+
+`seedConfig` injects a pre-parsed config object into the in-memory cache,
+validated through `configSchema.parse`. When seeded, `loadConfig()` returns
+the seeded values and **does not** call `ensureBytebellHome()` or read
+`config.json`. The cache invalidator is also no-op while seeded, so the seed
+survives unexpected `__notifyConfigChanged` events. `setConfigValue` throws
+`ConfigSeededError` when invoked against a seeded cache — writes are disabled
+in that mode. When `seedConfig` is never called, behaviour is bit-for-bit the
+disk-backed path: `loadConfig()` materializes `~/.bytebell/config.json` on
+first read and `setConfigValue` performs atomic writes.
 
 The `Config` enum lives in `@bb/types`; `ConfigIncompleteError` lives in
 `@bb/errors`. Both are imported from those packages directly, not from

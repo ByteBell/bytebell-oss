@@ -31,7 +31,8 @@ export function buildGithubIndexRoute(): Router {
     const now = new Date();
     const doc: KnowledgeDoc = {
       knowledgeId,
-      source: { kind: "github", repoUrl, ...(branch !== undefined ? { branch } : {}) },
+      source: { kind: "github" },
+      info: { repoUrl, ...(branch !== undefined ? { branch } : {}) },
       status: { state: KnowledgeState.Created },
       createdAt: now,
       updatedAt: now,

@@ -48,6 +48,7 @@ export function buildLocalIndexRoute(): Router {
     const doc: KnowledgeDoc = {
       knowledgeId,
       source: { kind: "local", sourcePath },
+      info: {},
       status: { state: KnowledgeState.Created },
       createdAt: now,
       updatedAt: now,

@@ -11,16 +11,38 @@ Domain (composes infra: `@bb/config`, `@bb/llm`, `@bb/mongo`, `@bb/neo4j`,
 
 ## Top-level files
 
-- **[index.ts](index.ts)** — public surface. `registerGithubWorkers`,
-  `registerLocalIngestWorker`, `createFlatFolderStrategy`,
-  `createLlmFileAnalyzer`, `createDiskSourceReader`, the
-  `SourceReader` / `ArchiveSink` / `SourceFactory` port types, plus
-  `parseGithubRepo` / `fetchLatestCommitHash` (kept for the pull plan).
-  `registerGithubWorkers` accepts one optional `sourceFactory` injection
-  parameter so downstream consumers can replace the default disk-based
-  clone-and-read; the open-source binary always leaves it undefined. for the
-  seam. `GithubPull` is registered but the handler throws
-  `IngestError("…being migrated…")` — the HTTP route mirrors this at 503.
+- **[index.ts](index.ts)** — public surface. The high-level
+  registration helpers (`registerGithubWorkers`, `registerLocalIngestWorker`)
+  for the OSS standalone, plus the lower-level building blocks downstream
+  consumers wire against their own queue/registry:
+  - Factories: `createFlatFolderStrategy`, `createLlmFileAnalyzer`,
+    `createDiskSourceReader`, `createPipelineRunner` (the orchestrator),
+    `createGithubIngestHandler` / `createLocalIngestHandler` (the BullMQ
+    processor factories used internally by `registerGithubWorkers`).
+  - Direct runner: `runPull(msg, pullFactory?)` — the pull worker the
+    enterprise wrapper invokes directly from its own registry.
+  - Helper: `reposRoot()` — resolves `~/.bytebell/repos`.
+  - Port types: `SourceReader` / `ScanEntry` / `ScannedFile` /
+    `OversizedFile` / `ScanDeps` / `ArchiveSink` / `ArchiveSinkInput` /
+    `SourceFactory` / `SourceFactoryInput` / `SourceFactoryResult` /
+    `PullFactory` / `PullFactoryInput` / `PullFactoryResult` /
+    `DiffResult` / `RenamedFile` / `FileAnalyzer` / `AnalyzedFileResult`.
+  - Runner types: `IngestRunnerDeps` / `IngestRunnerInput` /
+    `IngestJobHandlerDeps` / `CreatePipelineRunnerDeps`.
+  - Strategy types: `IngestStrategy` / `StrategyInput` / `StrategyResult` /
+    `StrategyContext`.
+  - `CondensedFileAnalysis`.
+  - GitHub helpers: `parseGithubRepo` / `fetchLatestCommitHash` /
+    `fetchRecentCommits`.
+    `registerGithubWorkers` accepts optional `sourceFactory` (index) and
+    `pullFactory` (pull) injections through `RegisterGithubWorkersDeps`;
+    the open-source binary leaves both undefined. It registers both
+    `JobType.GithubIndex` (full re-index, via `runner.run` + optional
+    `sourceFactory`) and `JobType.GithubPull` (incremental diff-and-apply
+    via `runPull` + optional `pullFactory`). Downstream consumers that
+    bring their own queue (e.g. the enterprise wrapper using `@bytebell/queue`)
+    skip `registerGithubWorkers` entirely and call `createPipelineRunner`,
+    `createGithubIngestHandler`, and `runPull` directly.
 - **[githubApi.ts](githubApi.ts)** — `parseGithubRepo(repoUrl)` and
   `fetchLatestCommitHash(owner, repo, branch, gitToken?)`. **Pull-only
   utility**; revisit in the pull plan. Kept in place rather than deleted so
@@ -75,10 +97,18 @@ Tier flow is strict: `types/` is the leaf; `pipeline/`, `adapters/`,
 ## Invariants enforced here
 
 - **One active strategy, factory-wired.** `createFlatFolderStrategy(deps)`
-  builds the strategy; `createPipelineRunner({ strategy })` wraps it; the
-  worker handlers are `(msg) => runner.run({ job, payload })`. Adding a
-  strategy means a new factory and a new wiring line — never editing the
-  worker. The archived `basic-file-analysis/` is `.archived` (not compiled).
+  builds the strategy; `createPipelineRunner({ strategy, sourceFactory? })`
+  wraps it; the worker handlers are `(msg) => runner.run({ job, payload })`.
+  Adding a strategy means a new factory and a new wiring line — never
+  editing the worker. The archived `basic-file-analysis/` is `.archived`
+  (not compiled).
+- **Per-job LLM credentials flow payload → context → call site.** The
+  runner (`pipeline/run.ts` for index, `pipeline/pull.ts` for pull) reads
+  `{llmApiKey, llmProvider, llmModel}` from the payload, packs them into
+  an `AskLlmOptions` bag stored on `StrategyContext.llmCallContext`, and
+  every LLM-touching phase passes that bag into `askJsonLLM` /
+  `askYesNoLLM`. OSS standalone leaves these unset and falls back to
+  `Config.OpenrouterApiKey` + `Config.LlmProvider`.
 - **State transitions are explicit and dual-written.** `pipeline/run.ts`
   transitions Mongo state to `PROCESSING` before any work, `PROCESSED` on
   success, `FAILED` best-effort on uncaught errors. Each transition mirrors

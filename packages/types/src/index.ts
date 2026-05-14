@@ -9,7 +9,13 @@ export type {
   PayloadLlmOverrides,
 } from "./job.ts";
 export { KnowledgeState } from "./knowledge.ts";
-export type { GithubKnowledgeSource, KnowledgeDoc, KnowledgeSource, LocalKnowledgeSource } from "./knowledge.ts";
+export type {
+  GithubKnowledgeSource,
+  KnowledgeDoc,
+  KnowledgeInfo,
+  KnowledgeSource,
+  LocalKnowledgeSource,
+} from "./knowledge.ts";
 export type {
   ModelTokenBreakdown,
   ModelTokenUsage,

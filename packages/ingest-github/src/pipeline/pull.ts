@@ -1,17 +1,19 @@
 import { Config, KnowledgeState, type GithubPullPayload, type JobMessage } from "@bb/types";
 import { getConfigValue } from "@bb/config";
-import { getKnowledge, recordProcessingStats, setKnowledgeCommit, setKnowledgeState } from "@bb/mongo";
+import { getKnowledge, setKnowledgeCommit, setKnowledgeState } from "@bb/mongo";
 import { setKnowledgeStateInGraph, snapshotFilesToVersion, type NodeScope } from "@bb/neo4j";
-import { estimateCostFromBreakdown, type AskLlmOptions } from "@bb/llm";
+import { type AskLlmOptions } from "@bb/llm";
+import { describe, persistPullStats, repoNameFromUrl } from "./pull-helpers.ts";
 import { IngestError, KnowledgeNotFoundError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import { ensureMetaDirs, metaPathsFor, repoCloneDir, ensureReposRoot } from "./paths.ts";
 import { readHeadCommitHash, syncRepository } from "./source.ts";
 import { CancellationError, clearCancellation, throwIfCancelled } from "./cancellation.ts";
-import { assertReachableFromBranch, checkoutCommit } from "./git-diff.ts";
+import { assertReachableFromBranch, checkoutCommit, type DiffResult } from "./git-diff.ts";
 import { computePullDiff, materialiseEndpoints } from "./pull-diff-resolver.ts";
 import { affectedFoldersFromDiff } from "./affected-folders.ts";
 import { createDiskSourceReader } from "./disk-source-reader.ts";
+import type { PullFactory, SourceReader, ArchiveSink } from "src/types/pipeline.ts";
 import { analyseChangedFiles } from "src/strategies/flat-folder/analyse-changed.ts";
 import { processBigFilesQueue } from "src/strategies/flat-folder/phases/process-big-files.ts";
 import { backfillMissingFields } from "src/strategies/flat-folder/backfill/fields.ts";
@@ -36,14 +38,14 @@ function resolveOrgId(payload: { orgId?: string }): string {
 
 function llmCallContextFromPayload(payload: {
   llmApiKey?: string;
-  llmProvider?: "openrouter" | "ollama";
+  llmProvider?: string;
   llmModel?: string;
 }): AskLlmOptions | undefined {
   const ctx: AskLlmOptions = {};
   if (payload.llmApiKey !== undefined && payload.llmApiKey.length > 0) {
     ctx.apiKey = payload.llmApiKey;
   }
-  if (payload.llmProvider !== undefined) {
+  if (payload.llmProvider === "openrouter" || payload.llmProvider === "ollama") {
     ctx.provider = payload.llmProvider;
   }
   if (payload.llmModel !== undefined && payload.llmModel.length > 0) {
@@ -52,7 +54,7 @@ function llmCallContextFromPayload(payload: {
   return Object.keys(ctx).length > 0 ? ctx : undefined;
 }
 
-export async function runPull(msg: JobMessage<GithubPullPayload>): Promise<void> {
+export async function runPull(msg: JobMessage<GithubPullPayload>, pullFactory?: PullFactory): Promise<void> {
   const { knowledgeId } = msg.payload;
   if (msg.payload.targetCommitHash !== undefined && !COMMIT_HASH_RE.test(msg.payload.targetCommitHash)) {
     throw new IngestError(
@@ -76,8 +78,11 @@ export async function runPull(msg: JobMessage<GithubPullPayload>): Promise<void>
     );
   }
 
-  const branch = knowledge.source.branch ?? "main";
-  const repoUrl = knowledge.source.repoUrl;
+  const branch = knowledge.info.branch ?? "main";
+  const repoUrl = knowledge.info.repoUrl;
+  if (repoUrl === undefined || repoUrl.length === 0) {
+    throw new IngestError(knowledgeId, "pull requires knowledge.info.repoUrl");
+  }
   const gitToken = msg.payload.gitToken;
 
   clearCancellation(knowledgeId);
@@ -86,51 +91,71 @@ export async function runPull(msg: JobMessage<GithubPullPayload>): Promise<void>
 
   try {
     throwIfCancelled(knowledgeId);
-    await ensureReposRoot();
-    const repoDir = repoCloneDir(knowledgeId);
-    const cloneOpts: { repoUrl: string; branch: string; destinationDir: string; gitToken?: string } = {
-      repoUrl,
-      branch,
-      destinationDir: repoDir,
-    };
-    if (gitToken !== undefined) {
-      cloneOpts.gitToken = gitToken;
+
+    let source: SourceReader;
+    let diff: DiffResult;
+    let targetCommit: string;
+    let archiveSink: ArchiveSink | undefined;
+
+    if (pullFactory !== undefined) {
+      const factoryResult = await pullFactory({ knowledgeId, payload: msg.payload, currentCommit, branch });
+      source = factoryResult.source;
+      diff = factoryResult.diff;
+      targetCommit = factoryResult.targetCommit;
+      archiveSink = factoryResult.archiveSink;
+      logger.info(`pull: pull factory wired (knowledgeId=${knowledgeId}, target=${targetCommit.slice(0, 12)})`);
+      if (targetCommit === currentCommit) {
+        logger.info(`pull: ${knowledgeId} already at ${targetCommit.slice(0, 12)}; no-op`);
+        await transitionState(knowledgeId, KnowledgeState.Processed);
+        return;
+      }
+    } else {
+      await ensureReposRoot();
+      const repoDir = repoCloneDir(knowledgeId);
+      const cloneOpts: { repoUrl: string; branch: string; destinationDir: string; gitToken?: string } = {
+        repoUrl,
+        branch,
+        destinationDir: repoDir,
+      };
+      if (gitToken !== undefined) {
+        cloneOpts.gitToken = gitToken;
+      }
+      await syncRepository(cloneOpts);
+
+      const branchHead = await readHeadCommitHash(repoDir);
+      if (branchHead === "unknown") {
+        throw new IngestError(knowledgeId, "could not resolve branch HEAD after clone");
+      }
+      targetCommit = msg.payload.targetCommitHash ?? branchHead;
+
+      if (targetCommit === currentCommit) {
+        logger.info(`pull: ${knowledgeId} already at ${targetCommit.slice(0, 12)}; no-op`);
+        await transitionState(knowledgeId, KnowledgeState.Processed);
+        return;
+      }
+
+      // Deepen the shallow clone first so historical commits selected via the
+      // picker become visible to `merge-base --is-ancestor`. Without this the
+      // assertion below rejects every non-HEAD pick on a `--depth=1` clone.
+      await materialiseEndpoints(repoDir, branch, currentCommit, targetCommit);
+
+      if (!(await assertReachableFromBranch(repoDir, targetCommit, branch))) {
+        throw new IngestError(
+          knowledgeId,
+          `target commit ${targetCommit} is not reachable from origin/${branch}. Cross-branch pulls are not supported; create a fresh github_index job for the new branch.`,
+        );
+      }
+
+      diff = await computePullDiff(repoDir, currentCommit, targetCommit);
+      await checkoutCommit(repoDir, targetCommit);
+      source = createDiskSourceReader({ repoDir, commitHash: targetCommit });
     }
-    await syncRepository(cloneOpts);
-
-    const branchHead = await readHeadCommitHash(repoDir);
-    if (branchHead === "unknown") {
-      throw new IngestError(knowledgeId, "could not resolve branch HEAD after clone");
-    }
-    const targetCommit = msg.payload.targetCommitHash ?? branchHead;
-
-    if (targetCommit === currentCommit) {
-      logger.info(`pull: ${knowledgeId} already at ${targetCommit.slice(0, 12)}; no-op`);
-      await transitionState(knowledgeId, KnowledgeState.Processed);
-      return;
-    }
-
-    // Deepen the shallow clone first so historical commits selected via the
-    // picker become visible to `merge-base --is-ancestor`. Without this the
-    // assertion below rejects every non-HEAD pick on a `--depth=1` clone.
-    await materialiseEndpoints(repoDir, branch, currentCommit, targetCommit);
-
-    if (!(await assertReachableFromBranch(repoDir, targetCommit, branch))) {
-      throw new IngestError(
-        knowledgeId,
-        `target commit ${targetCommit} is not reachable from origin/${branch}. Cross-branch pulls are not supported; create a fresh github_index job for the new branch.`,
-      );
-    }
-
-    const diff = await computePullDiff(repoDir, currentCommit, targetCommit);
 
     throwIfCancelled(knowledgeId);
     await snapshotFilesToVersion({ knowledgeId, commitHash: currentCommit }).catch((cause: unknown) => {
       const msgText = cause instanceof Error ? cause.message : String(cause);
       logger.warn(`pull: snapshot of ${currentCommit.slice(0, 12)} failed (non-fatal): ${msgText}`);
     });
-
-    await checkoutCommit(repoDir, targetCommit);
 
     const metaPaths = metaPathsFor(knowledgeId);
     await ensureMetaDirs(metaPaths);
@@ -148,7 +173,7 @@ export async function runPull(msg: JobMessage<GithubPullPayload>): Promise<void>
     throwIfCancelled(knowledgeId);
     const analyseChangedInput: Parameters<typeof analyseChangedFiles>[0] = {
       knowledgeId,
-      repoDir,
+      source,
       metaPaths,
       analyzer: fileAnalyzer,
       diff,
@@ -156,9 +181,10 @@ export async function runPull(msg: JobMessage<GithubPullPayload>): Promise<void>
     if (llmCallContext !== undefined) {
       analyseChangedInput.llmCallContext = llmCallContext;
     }
+    if (archiveSink !== undefined) {
+      analyseChangedInput.archiveSink = archiveSink;
+    }
     await analyseChangedFiles(analyseChangedInput);
-
-    const source = createDiskSourceReader({ repoDir, commitHash: targetCommit });
 
     logger.info(`pull: phase process big files starting`);
     throwIfCancelled(knowledgeId);
@@ -239,50 +265,4 @@ export async function runPull(msg: JobMessage<GithubPullPayload>): Promise<void>
 async function transitionState(knowledgeId: string, state: KnowledgeState): Promise<void> {
   await setKnowledgeState(knowledgeId, state);
   await setKnowledgeStateInGraph(knowledgeId, state).catch(() => undefined);
-}
-
-interface PersistPullStatsInput {
-  knowledgeId: string;
-  repoName: string;
-  commitHash: string;
-  filesAnalyzed: number;
-  foldersSummarised: number;
-  processingTimeMs: number;
-}
-
-async function persistPullStats(input: PersistPullStatsInput): Promise<void> {
-  const estimatedCost = await estimateCostFromBreakdown({});
-  await recordProcessingStats({
-    knowledgeId: input.knowledgeId,
-    repoName: input.repoName,
-    commitHash: input.commitHash,
-    modelTokens: {},
-    estimatedCost,
-    totalBatches: 1,
-    totalFiles: input.filesAnalyzed,
-    totalFolders: input.foldersSummarised,
-    filesAnalyzed: input.filesAnalyzed,
-    processingTimeMs: input.processingTimeMs,
-  });
-}
-
-function repoNameFromUrl(repoUrl: string): string {
-  try {
-    const segments = new URL(repoUrl).pathname
-      .split("/")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-    const repo = segments.at(-1)?.replace(/\.git$/u, "");
-    const owner = segments.at(-2);
-    if (owner !== undefined && repo !== undefined) {
-      return `${owner}/${repo}`;
-    }
-  } catch {
-    // fall through
-  }
-  return repoUrl;
-}
-
-function describe(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
 }

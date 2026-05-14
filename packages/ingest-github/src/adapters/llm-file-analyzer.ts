@@ -40,6 +40,7 @@ export function createLlmFileAnalyzer(deps: LlmFileAnalyzerDeps): FileAnalyzer {
     }): Promise<AnalyzedFileResult> {
       const systemPrompt = deps.buildSystemPrompt();
       const userPrompt = deps.buildUserPrompt(input);
+      const t0 = performance.now();
       let raw: RawAnalysisJson | null = null;
       try {
         const response = await askJsonLLM<RawAnalysisJson>(systemPrompt, userPrompt, input.llmCallContext ?? {});
@@ -54,7 +55,11 @@ export function createLlmFileAnalyzer(deps: LlmFileAnalyzerDeps): FileAnalyzer {
       if (raw === null) {
         return { language: FALLBACK_LANGUAGE, analysis: emptyFileAnalysis() };
       }
-      return shapeAnalysis(raw);
+      const shaped = shapeAnalysis(raw);
+      logger.info(
+        `llm-file-analyzer: ✓ ${input.relativePath} (${Math.round(performance.now() - t0)}ms, lang=${shaped.language})`,
+      );
+      return shaped;
     },
   };
 }

@@ -62,11 +62,26 @@ llmCallContext`, which every LLM call site downstream consumes. State
   transitions (`CREATED → QUEUED → INGESTED → …`) are persisted to Mongo
   - Neo4j via `transitionState`, and `CancellationError` is re-thrown
     without flipping to FAILED.
-- `pull.ts` — `runPull(msg)` orchestrates the pull job. Mirrors the same
-  payload-to-`llmCallContext` extraction as `run.ts` and threads the
-  resulting `AskLlmOptions` bag into every phase invocation
-  (`analyseChangedFiles`, `processBigFilesQueue`, `backfillMissingFields`,
-  `backfillBigFiles`, `runSelectiveFolderSummary`, `summariseRepo`).
+- `pull.ts` — `runPull(msg, pullFactory?)` orchestrates the pull job.
+  Reads `repoUrl` and `branch` directly off `knowledge.info.*` (loaded via
+  `@bb/mongo.getKnowledge`). The `KnowledgeSource` discriminator (`kind`) is
+  still read off `knowledge.source` along with `commitId`/`commitHashes`, but
+  the repo coordinates themselves live on `info` — no fallback chain.
+  When `pullFactory` is provided, it returns `{source, diff, targetCommit,
+archiveSink?}` and `runPull` skips `syncRepository` + `materialiseEndpoints`
+  - `assertReachableFromBranch` + `computePullDiff` + `checkoutCommit` —
+    the factory is the sole source of truth. When `pullFactory` is undefined
+    (open-source default), the legacy git-based path runs. Either path
+    produces the same downstream pipeline: snapshot prior version,
+    `analyseChangedFiles` (now reading via `SourceReader`),
+    `processBigFilesQueue`, `backfillMissingFields`, `backfillBigFiles`,
+    `runSelectiveFolderSummary`, `summariseRepo`, `storePullAnalysis`.
+    Mirrors `run.ts` for `llmCallContext` extraction from payload.
+- `pull-helpers.ts` — small pure helpers extracted from `pull.ts` to keep it
+  under the 300-line cap: `persistPullStats` writes the per-commit row into
+  `processing_stats`, `repoNameFromUrl` parses an owner/repo display name out
+  of a GitHub URL with a graceful fallback, and `describe` flattens an
+  `unknown` cause to a short string for `IngestError` messages.
 - `branch.ts` — `resolveBranch(knowledgeId, payload)`. Defaults to `main` when
   the payload omits it; rejects branch names that don't match `^[\w./-]+$`
   with `IngestError` (defence against shell-injection into git args).

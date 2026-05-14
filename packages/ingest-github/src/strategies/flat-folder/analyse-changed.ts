@@ -1,10 +1,9 @@
 import path from "node:path";
-import { readFile, stat } from "node:fs/promises";
 import { tokenLen, type AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
-import type { FileAnalyzer, ScannedFile } from "src/types/pipeline.ts";
+import type { ArchiveSink, FileAnalyzer, ScannedFile, SourceReader } from "src/types/pipeline.ts";
 import type { MetaPaths } from "src/types/meta-paths.ts";
 import type { BigFileEntry } from "src/types/big-file.ts";
 import { looksBinary, passesPathFilters } from "src/pipeline/filters.ts";
@@ -17,10 +16,13 @@ import { readBigFiles, writeBigFiles } from "src/strategies/flat-folder/big-file
 
 export interface AnalyseChangedInput {
   knowledgeId: string;
-  repoDir: string;
+  source: SourceReader;
   metaPaths: MetaPaths;
   analyzer: FileAnalyzer;
   diff: DiffResult;
+  llmCallContext?: AskLlmOptions;
+  /** Optional non-fatal archive sink. When set, analysed content is pushed after `saveCondensed`. */
+  archiveSink?: ArchiveSink;
   /**
    * Invoked once per consumed path (analysed, stubbed, queued-as-big-file,
    * filtered, or failed). Lets the caller drive a `processedFiles` counter
@@ -28,7 +30,6 @@ export interface AnalyseChangedInput {
    * effort — errors from the callback are swallowed.
    */
   onFileProcessed?: () => Promise<void> | void;
-  llmCallContext?: AskLlmOptions;
 }
 
 export interface AnalyseChangedResult {
@@ -40,19 +41,24 @@ export interface AnalyseChangedResult {
 }
 
 /**
- * Pull-time per-file dispatcher. Iterates the changed file set from the git
+ * Pull-time per-file dispatcher. Iterates the changed file set from the
  * diff and runs the same per-file work as `classifyAndAnalyseSmall`, but
  * targeted at known paths rather than a tree walk.
  *
- * For added / modified / renamed-to paths: read content, apply static path
- * filters, classify by tokens. Small files run the analyser inline and
- * persist a `CondensedFileAnalysis`. Files above the context window join
- * `bigFiles.json` for the big-file phase. Files above the absolute size cap
- * get an oversized stub.
+ * Reads file content through `input.source` (a `SourceReader`) so the
+ * dispatcher works with both the disk-backed reader (OSS default) and
+ * any HTTP-backed alternative supplied via the pull factory hook.
  *
- * The dispatcher does NOT invoke the skip-decision LLM gate. Pulls re-analyse
- * paths that already passed the gate during the initial index (or paths so
- * new the gate has not seen them yet — for v1 we accept that lag).
+ * For added / modified / renamed-to paths: read content, apply static
+ * path filters, classify by tokens. Small files run the analyser inline
+ * and persist a `CondensedFileAnalysis`. Files above the context window
+ * join `bigFiles.json` for the big-file phase. Files above the absolute
+ * size cap get an oversized stub.
+ *
+ * The dispatcher does NOT invoke the skip-decision LLM gate. Pulls
+ * re-analyse paths that already passed the gate during the initial
+ * index (or paths so new the gate has not seen them yet — for v1 we
+ * accept that lag).
  */
 export async function analyseChangedFiles(input: AnalyseChangedInput): Promise<AnalyseChangedResult> {
   const contextWindowLimit = getConfigValue(Config.ContextWindowLimit);
@@ -88,15 +94,19 @@ export async function analyseChangedFiles(input: AnalyseChangedInput): Promise<A
       continue;
     }
 
-    const abs = path.join(input.repoDir, relativePath);
-    let sizeBytes: number;
+    let content: string;
     try {
-      sizeBytes = (await stat(abs)).size;
+      content = await input.source.readFile(relativePath);
     } catch (cause: unknown) {
       failed += 1;
-      logger.warn(`pull-analyse: stat failed for ${relativePath}: ${describe(cause)}`);
+      logger.warn(`pull-analyse: read failed for ${relativePath}: ${describe(cause)}`);
       continue;
     }
+    if (content.length === 0) {
+      skipped += 1;
+      continue;
+    }
+    const sizeBytes = Buffer.byteLength(content, "utf8");
 
     if (sizeBytes > absoluteCap) {
       bigFileBuffer.push({
@@ -115,19 +125,10 @@ export async function analyseChangedFiles(input: AnalyseChangedInput): Promise<A
       continue;
     }
 
-    let buf: Buffer;
-    try {
-      buf = await readFile(abs);
-    } catch (cause: unknown) {
-      failed += 1;
-      logger.warn(`pull-analyse: read failed for ${relativePath}: ${describe(cause)}`);
-      continue;
-    }
-    if (looksBinary(buf)) {
+    if (looksBinary(Buffer.from(content, "utf8"))) {
       skipped += 1;
       continue;
     }
-    const content = buf.toString("utf8");
     if (countLines(content) > bigFileLineThreshold) {
       bigFileBuffer.push({
         relativePath,
@@ -159,16 +160,25 @@ export async function analyseChangedFiles(input: AnalyseChangedInput): Promise<A
     const scanned: ScannedFile = {
       kind: "file",
       relativePath,
-      absolutePath: abs,
+      absolutePath: relativePath,
       sizeBytes,
       content,
     };
+    const fileContent = content;
+    const filePath = relativePath;
     pending.push(
       limit(async () => {
         try {
           throwIfCancelled(input.knowledgeId);
           const condensed = await analyseScannedFile(input.analyzer, scanned, input.llmCallContext);
           await saveCondensed(input.metaPaths, condensed);
+          if (input.archiveSink !== undefined) {
+            await input.archiveSink.push({
+              knowledgeId: input.knowledgeId,
+              relativePath: filePath,
+              content: fileContent,
+            });
+          }
           smallFilesAnalysed += 1;
         } catch (cause: unknown) {
           if (cause instanceof CancellationError) {

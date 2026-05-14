@@ -9,8 +9,6 @@ export enum KnowledgeState {
 
 export interface GithubKnowledgeSource {
   kind: "github";
-  repoUrl: string;
-  branch?: string;
   /** Current head pointer — the most recently indexed commit. */
   commitId?: string;
   /** Every commit this knowledge has been indexed at, oldest → newest. Pull appends to this list. */
@@ -24,10 +22,19 @@ export interface LocalKnowledgeSource {
 
 export type KnowledgeSource = GithubKnowledgeSource | LocalKnowledgeSource;
 
+export interface KnowledgeInfo {
+  repoUrl?: string;
+  branch?: string;
+  git_url?: string;
+  githubInfo?: { commitId?: string; commitHashes?: string[]; branchName?: string };
+  [key: string]: unknown;
+}
+
 export interface KnowledgeDoc {
   knowledgeId: string;
   source: KnowledgeSource;
   status: { state: KnowledgeState; totalFiles?: number; processedFiles?: number };
   createdAt: Date;
   updatedAt: Date;
+  info: KnowledgeInfo;
 }

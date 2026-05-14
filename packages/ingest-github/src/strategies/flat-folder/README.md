@@ -35,7 +35,8 @@ sub-phase boundary.
 - `index.ts` — `createFlatFolderStrategy(deps)` orchestrates the 7 phases.
 - `types.ts` — `AnalyzedFileEntry`, `FolderSummary`, `RepoSummary`,
   `RepoSummaryEnvelope`, `FlatFolderResult`.
-- `analyse-file.ts` — `analyseScannedFile(analyzer, file)` + `buildOversizedStub`.
+- `analyse-file.ts` — `analyseScannedFile(analyzer, file, llmCallContext?)` + `buildOversizedStub`.
+- `analyse-changed.ts` — `analyseChangedFiles({knowledgeId, source, metaPaths, analyzer, diff, llmCallContext?, archiveSink?})`. Pull-time per-file dispatcher. Reads changed file content through `input.source` (a `SourceReader`) so it works with both the disk-backed reader (OSS default) and any HTTP-backed alternative supplied via the `pullFactory` hook. Mirrors `classifyAndAnalyseSmall`'s small-file path: filter → fetch → size cap → binary detect → line count → analyse → save + archive push. Does NOT invoke the skip-decision LLM gate.
 - `folder-path.ts` — `directFolderOf`, `affectedFolderPaths`.
 - `folder-summary.ts` — group + summarise + persist + iterate folder summaries.
 - `repo-summary.ts` — single-shot or batched repo summary with envelope writer.

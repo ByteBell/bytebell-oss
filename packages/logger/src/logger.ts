@@ -6,7 +6,10 @@ import { flushTransport, makeConsoleTransport, makeFileTransport } from "./trans
 
 export type LoggerScope = "server" | "cli";
 
+export type LoggerFactory = (scope: LoggerScope) => winston.Logger;
+
 const scopeLoggers = new Map<LoggerScope, winston.Logger>();
+let seededFactory: LoggerFactory | null = null;
 
 function buildLogger(scope: LoggerScope): winston.Logger {
   ensureLogsDir();
@@ -17,12 +20,21 @@ function buildLogger(scope: LoggerScope): winston.Logger {
   });
 }
 
+export function seedLoggerFactory(factory: LoggerFactory): void {
+  seededFactory = factory;
+  scopeLoggers.clear();
+}
+
+export function __isLoggerFactorySeeded(): boolean {
+  return seededFactory !== null;
+}
+
 export function getLogger(scope: LoggerScope): winston.Logger {
   const cached = scopeLoggers.get(scope);
   if (cached !== undefined) {
     return cached;
   }
-  const logger = buildLogger(scope);
+  const logger = seededFactory !== null ? seededFactory(scope) : buildLogger(scope);
   scopeLoggers.set(scope, logger);
   return logger;
 }
@@ -42,4 +54,5 @@ export function __resetLoggersForTests(): void {
     logger.close();
   }
   scopeLoggers.clear();
+  seededFactory = null;
 }

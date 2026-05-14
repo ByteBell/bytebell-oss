@@ -19,15 +19,31 @@ Single logging surface for the workspace. Two sinks:
 
 ```ts
 type LoggerScope = "server" | "cli"
+type LoggerFactory = (scope: LoggerScope) => Logger
 type Logger                                          // re-exported from winston
 
+const logger: Logger                                 // proxy → getLogger("server")
 function getLogger(scope: LoggerScope): Logger
+function seedLoggerFactory(factory: LoggerFactory): void
 function shutdownLoggers(): Promise<void>
 function getLogsDir(): string
 function ensureLogsDir(): void
 
+function __isLoggerFactorySeeded(): boolean
 function __resetLoggersForTests(): void              // test-only
 ```
+
+`logger` (the default export) is a Proxy that lazily resolves to
+`getLogger("server")` on every access — necessary because the resolved logger
+may change after `seedLoggerFactory` is called by a parent process.
+
+`seedLoggerFactory(factory)` registers a factory used by all subsequent
+`getLogger(scope)` calls. The previous scope cache is cleared on registration
+so any logger already imported via the `logger` proxy resolves to the new
+factory's output on its next method call. When no factory is seeded,
+`getLogger` falls back to `buildLogger(scope)` — the disk-backed
+DailyRotateFile + Console transport setup. The standalone binary never seeds
+and gets the original behaviour bit-for-bit.
 
 `getLogger(scope)` is idempotent. Workers tag via
 `getLogger("server").child({ worker: "pdf-1" })` — there is no per-worker file

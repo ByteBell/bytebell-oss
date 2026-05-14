@@ -165,7 +165,7 @@ function deriveRepoName(doc: KnowledgeDoc): string {
     return segments.at(-1) ?? doc.source.sourcePath;
   }
   try {
-    const segments = new URL(doc.source.repoUrl).pathname
+    const segments = new URL(doc.info.repoUrl ?? "").pathname
       .split("/")
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
@@ -177,7 +177,7 @@ function deriveRepoName(doc: KnowledgeDoc): string {
   } catch {
     // fall through
   }
-  return doc.source.repoUrl;
+  return doc.info.repoUrl ?? "";
 }
 
 function toIso(value: Date | string | undefined): string {

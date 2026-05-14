@@ -15,12 +15,20 @@ export enum JobPriority {
  * `Config.OpenrouterApiKey` and `Config.LlmProvider` for the duration of this
  * job's processing. Used by downstream consumers (e.g. the enterprise wrapper)
  * that resolve per-org credentials at the enqueue boundary and infuse them
- * into the payload — OSS standalone leaves all three unset.
+ * into the payload — OSS standalone leaves all four unset.
+ *
+ * `llmProvider` is intentionally `string` rather than a closed union: OSS
+ * standalone uses `"openrouter"` or `"ollama"` (the only values the LLM
+ * client routes on today), but downstream consumers may carry richer
+ * provider taxonomies (`"anthropic"`, `"gemini"`, `"mistral"`, …) that the
+ * OSS client ignores. The `llmKeyId` field is opaque to OSS — kept as an
+ * audit pointer back to the resolver's source of truth.
  */
 export interface PayloadLlmOverrides {
   llmApiKey?: string;
-  llmProvider?: "openrouter" | "ollama";
+  llmProvider?: string;
   llmModel?: string;
+  llmKeyId?: string;
 }
 
 export interface GithubIndexPayload extends PayloadLlmOverrides {
@@ -34,6 +42,12 @@ export interface GithubIndexPayload extends PayloadLlmOverrides {
 
 export interface GithubPullPayload extends PayloadLlmOverrides {
   knowledgeId: string;
+  /**
+   * Optional org binding. OSS standalone leaves this unset and the pipeline
+   * reads `Config.OrgId` (locked to `"local"`). Downstream multi-tenant
+   * deployments stamp it from the request so worker lookups can scope by org.
+   */
+  orgId?: string;
   /**
    * Optional commit to re-index the knowledge to. Must be a 40-character hex SHA
    * and must be reachable from `origin/<knowledge.branch>`. When omitted, the

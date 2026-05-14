@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "types": "./types/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.ts"
+    }
   },
   "dependencies": {
     "@bb/config": "workspace:*",

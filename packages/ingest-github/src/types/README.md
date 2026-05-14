@@ -23,13 +23,17 @@ llmCallContext? }`; `llmCallContext` is the optional `AskLlmOptions`
   `SourceReader` / `ScanDeps` (the repository-read abstraction; default
   implementation in `pipeline/disk-source-reader.ts`), `ArchiveSink` /
   `ArchiveSinkInput` (an optional non-fatal sink that the open-source
-  binary never calls), and `SourceFactory` / `SourceFactoryInput` /
-  `SourceFactoryResult` (the optional injection hook surfaced through
-  `registerGithubWorkers`; see `docs/extension-points.md`).
+  binary never calls), `SourceFactory` / `SourceFactoryInput` /
+  `SourceFactoryResult` (the optional index-side injection hook surfaced
+  through `registerGithubWorkers`), and `PullFactory` / `PullFactoryInput`
+  / `PullFactoryResult` (the analogous pull-side injection hook).
   `FileAnalyzer.analyze()`, `SkipDeciderInput`, and `ScanDeps` each accept
   an optional `llmCallContext?: AskLlmOptions` so per-job credentials
   flow from `StrategyContext` into every LLM call site without breaking
-  the OSS standalone (defaults to undefined → config-driven).
+  the OSS standalone (defaults to undefined → config-driven). Both
+  factories are documented in `docs/extension-points.md`. The two are
+  separate because pull additionally needs a `diff` and a resolved
+  `targetCommit`, which index doesn't.
 - `meta-paths.ts` — `MetaPaths` shape (`~/.bytebell/repos/.meta/<knowledgeId>/...`).
 - `file-analysis.ts` — `FALLBACK_LANGUAGE = "unknown"` and `emptyFileAnalysis()`
   factory. Both consumed by the LLM adapter and the big-file condenser.
