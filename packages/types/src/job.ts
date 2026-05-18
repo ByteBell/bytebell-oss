@@ -2,6 +2,7 @@ export enum JobType {
   GithubIndex = "github_index",
   GithubPull = "github_pull",
   LocalIngest = "local_ingest",
+  BusinessContextProcessing = "CUSTOM_CONTEXT_PROCESSING",
 }
 
 export enum JobPriority {
@@ -65,6 +66,33 @@ export interface LocalIngestPayload {
   orgId?: string;
 }
 
+/**
+ * Payload for the BusinessContext processing job. A BusinessContext is a free-text
+ * note authored by a human against a specific indexed commit of a GitHub knowledge.
+ * The worker analyses the text into structured product/technical fields, persists
+ * it to the per-commit meta tree on disk, and projects it into Neo4j as a
+ * `:BusinessContext` node plus a `:BusinessContextVersion` snapshot keyed by
+ * `(knowledgeId, commitHash)`.
+ *
+ * `orgId` is single-tenant (`"local"`) in OSS; downstream multi-tenant deployments
+ * stamp it from the request so org-scoped keyword nodes stay isolated.
+ */
+export interface BusinessContextProcessingPayload extends PayloadLlmOverrides {
+  knowledgeId: string;
+  /** 40-char hex SHA of the commit this business context applies to. */
+  commitHash: string;
+  /** Raw, user-authored business-context text. */
+  customText: string;
+  /** Optional human-supplied description for the job-tracking record. */
+  description?: string;
+  /** Optional repo URL (carried for audit; ingestion does not re-clone). */
+  repoUrl?: string;
+  /** Optional branch (carried for audit). */
+  branch?: string;
+  /** Tenant binding. OSS standalone leaves this unset (defaults to `"local"`). */
+  orgId?: string;
+}
+
 export interface JobMessage<P> {
   id: string;
   type: JobType;
@@ -81,4 +109,6 @@ export type PayloadFor<T extends JobType> = T extends JobType.GithubIndex
     ? GithubPullPayload
     : T extends JobType.LocalIngest
       ? LocalIngestPayload
-      : never;
+      : T extends JobType.BusinessContextProcessing
+        ? BusinessContextProcessingPayload
+        : never;

@@ -1,7 +1,7 @@
 import { logger } from "@bb/logger";
-import type { FileAnalyzer } from "src/types/pipeline.ts";
-import type { IngestStrategy, StrategyInput, StrategyResult } from "src/types/strategy.ts";
-import { throwIfCancelled } from "src/pipeline/cancellation.ts";
+import type { FileAnalyzer } from "#src/types/pipeline.ts";
+import type { IngestStrategy, StrategyInput, StrategyResult } from "#src/types/strategy.ts";
+import { throwIfCancelled } from "#src/pipeline/cancellation.ts";
 import { classifyAndAnalyseSmall } from "./phases/classify-and-analyse-small.ts";
 import { processBigFilesQueue } from "./phases/process-big-files.ts";
 import { backfillMissingFields } from "./backfill/fields.ts";
@@ -9,8 +9,8 @@ import { backfillBigFiles } from "./backfill/big-files.ts";
 import { runFolderSummaryPhase } from "./folder-summary.ts";
 import { makeRepoSummaryEnvelope, persistRepoSummary, summariseRepo } from "./repo-summary.ts";
 import { storeFlatAnalysis } from "./phases/store-flat-analysis.ts";
-import type { ProgressContext, ProgressContextFactory } from "src/progress/types.ts";
-import { nullProgressContextFactory } from "src/progress/NullProgressReporter.ts";
+import type { ProgressContext, ProgressContextFactory } from "#src/progress/types.ts";
+import { nullProgressContextFactory } from "#src/progress/NullProgressReporter.ts";
 
 export interface FlatFolderStrategyDeps {
   fileAnalyzer: FileAnalyzer;

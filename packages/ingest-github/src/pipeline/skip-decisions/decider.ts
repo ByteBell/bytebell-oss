@@ -4,7 +4,7 @@ import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
 import { askYesNoLLM, type AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
-import type { SkipDecider, SkipDeciderInput, SkipDecision } from "src/types/pipeline.ts";
+import type { SkipDecider, SkipDeciderInput, SkipDecision } from "#src/types/pipeline.ts";
 import {
   defaultCachePath,
   emptyCache,

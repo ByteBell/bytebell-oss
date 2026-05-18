@@ -1,9 +1,9 @@
 import { askJsonLLM, type AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
-import type { ChunkAnalysisResult, FileChunk } from "src/types/big-file.ts";
-import { FALLBACK_LANGUAGE, emptyFileAnalysis } from "src/types/file-analysis.ts";
-import { shapeAnalysis } from "src/adapters/llm-file-analyzer.ts";
-import { CHUNK_ANALYSIS_SYSTEM_PROMPT, buildChunkUserPrompt } from "src/strategies/flat-folder/prompts/chunk.ts";
+import type { ChunkAnalysisResult, FileChunk } from "#src/types/big-file.ts";
+import { FALLBACK_LANGUAGE, emptyFileAnalysis } from "#src/types/file-analysis.ts";
+import { shapeAnalysis } from "#src/adapters/llm-file-analyzer.ts";
+import { CHUNK_ANALYSIS_SYSTEM_PROMPT, buildChunkUserPrompt } from "#src/strategies/flat-folder/prompts/chunk.ts";
 
 export async function analyzeChunk(chunk: FileChunk, llmCallContext?: AskLlmOptions): Promise<ChunkAnalysisResult> {
   const systemPrompt = CHUNK_ANALYSIS_SYSTEM_PROMPT;

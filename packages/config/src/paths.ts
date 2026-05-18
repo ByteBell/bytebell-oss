@@ -2,13 +2,31 @@ import os from "node:os";
 import path from "node:path";
 
 let testHomeOverride: string | null = null;
+let homeResolver: (() => string | null) | null = null;
 const cacheInvalidators: Array<() => void> = [];
 
 export function getBytebellHome(): string {
   if (testHomeOverride !== null) {
     return testHomeOverride;
   }
+  if (homeResolver !== null) {
+    const resolved = homeResolver();
+    if (resolved !== null) {
+      return resolved;
+    }
+  }
   return path.join(os.homedir(), ".bytebell");
+}
+
+/**
+ * Register an override resolver for `getBytebellHome()`. The resolver runs on
+ * every call (no caching) so it may return different values across invocations.
+ * Returning `null` falls through to the `~/.bytebell` default. Pass `null` to
+ * clear the resolver.
+ */
+export function setBytebellHomeResolver(fn: (() => string | null) | null): void {
+  homeResolver = fn;
+  __notifyConfigChanged();
 }
 
 export function getConfigPath(): string {

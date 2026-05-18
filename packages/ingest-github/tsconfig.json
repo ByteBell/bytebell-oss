@@ -1,25 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "baseUrl": ".",
-    "paths": {
-      "src/*": ["./src/*"]
-    },
-    "ignoreDeprecations": "5.0",
-    "noEmit": false,
-    "emitDeclarationOnly": true
-  },
-  "include": ["src/**/*", "src/**/*.json"],
-  "references": [
-    { "path": "../config" },
-    { "path": "../errors" },
-    { "path": "../llm" },
-    { "path": "../logger" },
-    { "path": "../mongo" },
-    { "path": "../neo4j" },
-    { "path": "../queue" },
-    { "path": "../types" }
-  ]
+  "extends": "../../../../tsconfig.base.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.json"]
 }

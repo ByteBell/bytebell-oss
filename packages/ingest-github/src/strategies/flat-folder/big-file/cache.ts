@@ -1,5 +1,5 @@
 import { readManifestIfPresent, readCondensed } from "./storage.ts";
-import type { MetaPaths } from "src/types/meta-paths.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
 
 export type BigFileCacheStatus = "complete" | "stale-condensed" | "missing";
 

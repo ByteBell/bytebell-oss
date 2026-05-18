@@ -1,8 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { tokenLen } from "@bb/llm";
 import { logger } from "@bb/logger";
-import type { BigFileEntry, BigFileReason } from "src/types/big-file.ts";
-import type { MetaPaths } from "src/types/meta-paths.ts";
+import type { BigFileEntry, BigFileReason } from "#src/types/big-file.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
 
 export function classifyByTokens(
   content: string,

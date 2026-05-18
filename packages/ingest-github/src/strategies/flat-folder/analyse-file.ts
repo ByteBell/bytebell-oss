@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { tokenLen, type AskLlmOptions } from "@bb/llm";
-import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
-import type { FileAnalyzer, ScannedFile } from "src/types/pipeline.ts";
+import type { CondensedFileAnalysis } from "#src/types/condensed-file-analysis.ts";
+import type { FileAnalyzer, ScannedFile } from "#src/types/pipeline.ts";
 
 export async function analyseScannedFile(
   analyzer: FileAnalyzer,

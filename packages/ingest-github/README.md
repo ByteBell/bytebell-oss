@@ -80,6 +80,12 @@ function createGithubIngestHandler(deps: IngestJobHandlerDeps): (msg) => Promise
 function createLocalIngestHandler(deps: IngestJobHandlerDeps): (msg) => Promise<void>;
 function runPull(msg: JobMessage<GithubPullPayload>, pullFactory?: PullFactory): Promise<void>;
 function reposRoot(): string;
+function repoCloneDir(knowledgeId: string): string;
+function metaRootFor(knowledgeId: string): string;
+function metaPathsFor(knowledgeId: string): MetaPaths;
+function commitMetaDir(knowledgeId: string, commitHash: string): string;
+function businessContextDir(knowledgeId: string, commitHash: string, sanitizedTitle: string): string;
+function orgRegistryDir(knowledgeId: string, orgId: string): string;
 
 function createFlatFolderStrategy(deps): IngestStrategy;
 function createLlmFileAnalyzer(deps): FileAnalyzer;

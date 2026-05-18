@@ -3,11 +3,11 @@ import { setKnowledgeBranch, setKnowledgeCommit, setKnowledgeState } from "@bb/m
 import { setKnowledgeBranchInGraph, setKnowledgeStateInGraph } from "@bb/neo4j";
 import { IngestError } from "@bb/errors";
 import { logger } from "@bb/logger";
-import type { IngestRunnerDeps, IngestRunnerInput } from "src/types/ingest-runner.ts";
-import type { IngestStrategy } from "src/types/strategy.ts";
-import type { ArchiveSink, PipelineSummary, SourceFactory, SourceReader } from "src/types/pipeline.ts";
-import type { ProgressContextFactory } from "src/progress/types.ts";
-import { nullProgressContextFactory } from "src/progress/NullProgressReporter.ts";
+import type { IngestRunnerDeps, IngestRunnerInput } from "#src/types/ingest-runner.ts";
+import type { IngestStrategy } from "#src/types/strategy.ts";
+import type { ArchiveSink, PipelineSummary, SourceFactory, SourceReader } from "#src/types/pipeline.ts";
+import type { ProgressContextFactory } from "#src/progress/types.ts";
+import { nullProgressContextFactory } from "#src/progress/NullProgressReporter.ts";
 import { ensureMetaDirs, ensureReposRoot, metaPathsFor, repoCloneDir } from "./paths.ts";
 import { readHeadCommitHash, syncRepository } from "./source.ts";
 import { resolveBranch } from "./branch.ts";

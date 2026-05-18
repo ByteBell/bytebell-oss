@@ -1,6 +1,6 @@
 import type { GithubIndexPayload } from "@bb/types";
 import { IngestError } from "@bb/errors";
-import { fetchDefaultBranch } from "src/githubApi.ts";
+import { fetchDefaultBranch } from "#src/githubApi.ts";
 
 const DEFAULT_BRANCH = "main";
 

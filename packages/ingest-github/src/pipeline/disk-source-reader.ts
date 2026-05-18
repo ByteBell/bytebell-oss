@@ -1,6 +1,6 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises";
-import type { ScanDeps, ScanEntry, SourceReader } from "src/types/pipeline.ts";
+import type { ScanDeps, ScanEntry, SourceReader } from "#src/types/pipeline.ts";
 import { scanRepository } from "./scan.ts";
 
 export interface DiskSourceReaderDeps {

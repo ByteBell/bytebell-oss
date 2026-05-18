@@ -1,11 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "noEmit": false,
-    "emitDeclarationOnly": true
-  },
-  "include": ["src/**/*"],
-  "references": [{ "path": "../config" }, { "path": "../types" }]
+  "extends": "../../../../tsconfig.base.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.json"]
 }

@@ -5,7 +5,7 @@ import { getConfigValue } from "@bb/config";
 import type { AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
 import { SKIP_DIRS, looksBinary, passesPathFilters } from "./filters.ts";
-import type { ScanEntry, SkipDecider } from "src/types/pipeline.ts";
+import type { ScanEntry, SkipDecider } from "#src/types/pipeline.ts";
 
 interface ScanLimits {
   absoluteCap: number;

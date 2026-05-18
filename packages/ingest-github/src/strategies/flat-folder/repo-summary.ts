@@ -3,8 +3,8 @@ import { askJsonLLM, tokenLen, type AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { throwIfCancelled } from "src/pipeline/cancellation.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import { throwIfCancelled } from "#src/pipeline/cancellation.ts";
 import { iterateFolderSummaries } from "./folder-summary.ts";
 import {
   REPO_SUMMARY_SYSTEM_PROMPT,

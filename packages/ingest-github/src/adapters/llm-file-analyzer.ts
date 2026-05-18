@@ -1,8 +1,8 @@
 import { askJsonLLM, type AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
 import type { FileAnalysis, FileAnalysisSection } from "@bb/mongo";
-import { FALLBACK_LANGUAGE, emptyFileAnalysis } from "src/types/file-analysis.ts";
-import type { AnalyzedFileResult, FileAnalyzer } from "src/types/pipeline.ts";
+import { FALLBACK_LANGUAGE, emptyFileAnalysis } from "#src/types/file-analysis.ts";
+import type { AnalyzedFileResult, FileAnalyzer } from "#src/types/pipeline.ts";
 
 export interface LlmFileAnalyzerDeps {
   buildSystemPrompt: () => string;

@@ -4,7 +4,7 @@ import type {
   ProgressPhase,
   ProgressReporter,
   ProgressReporterInput,
-} from "src/progress/types.ts";
+} from "#src/progress/types.ts";
 
 class NullProgressReporter implements ProgressReporter {
   async start(): Promise<void> {

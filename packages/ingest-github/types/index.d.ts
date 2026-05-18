@@ -49,6 +49,12 @@ export declare const createGithubIngestHandler: (...args: any[]) => any;
 export declare const createLocalIngestHandler: (...args: any[]) => any;
 export declare const runPull: (...args: any[]) => any;
 export declare const reposRoot: (...args: any[]) => string;
+export declare const repoCloneDir: (knowledgeId: string) => string;
+export declare const metaRootFor: (knowledgeId: string) => string;
+export declare const metaPathsFor: (knowledgeId: string) => unknown;
+export declare const commitMetaDir: (knowledgeId: string, commitHash: string) => string;
+export declare const businessContextDir: (knowledgeId: string, commitHash: string, sanitizedTitle: string) => string;
+export declare const orgRegistryDir: (knowledgeId: string, orgId: string) => string;
 export declare function fetchLatestCommitHash(
   repoUrl: string,
   branch: string,

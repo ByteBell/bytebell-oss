@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-only WITH non-commercial-clause
-
 import { recordProcessingStats } from "@bb/mongo";
 import { estimateCostFromBreakdown } from "@bb/llm";
 

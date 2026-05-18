@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-only WITH non-commercial-clause
 import { getConfigValue } from "@bb/config";
 import { Config } from "@bb/types";
 import { LlmConfigError, LlmError } from "@bb/errors";

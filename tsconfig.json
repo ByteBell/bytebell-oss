@@ -17,6 +17,7 @@
     { "path": "packages/queue" },
     { "path": "packages/llm" },
     { "path": "packages/ingest-github" },
+    { "path": "packages/ingest-business-context" },
     { "path": "packages/cli" },
     { "path": "packages/server" },
     { "path": "packages/neo4j" },

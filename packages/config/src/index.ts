@@ -6,4 +6,10 @@ export type { ConfigCompletenessResult } from "./loader.ts";
 
 export { setConfigValue, ensureBytebellHome, ConfigSeededError } from "./writer.ts";
 
-export { getBytebellHome, getConfigPath, isDevMode, __setBytebellHomeForTests } from "./paths.ts";
+export {
+  getBytebellHome,
+  getConfigPath,
+  isDevMode,
+  setBytebellHomeResolver,
+  __setBytebellHomeForTests,
+} from "./paths.ts";

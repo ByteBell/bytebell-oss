@@ -1,11 +1,11 @@
 import { logger } from "@bb/logger";
 import type { AskLlmOptions } from "@bb/llm";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import type { SourceReader } from "src/types/pipeline.ts";
-import type { ProgressContext } from "src/progress/types.ts";
-import { readBigFiles } from "src/strategies/flat-folder/big-file/detector.ts";
-import { inspect } from "src/strategies/flat-folder/big-file/cache.ts";
-import { processBigFile } from "src/strategies/flat-folder/big-file/index.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import type { SourceReader } from "#src/types/pipeline.ts";
+import type { ProgressContext } from "#src/progress/types.ts";
+import { readBigFiles } from "#src/strategies/flat-folder/big-file/detector.ts";
+import { inspect } from "#src/strategies/flat-folder/big-file/cache.ts";
+import { processBigFile } from "#src/strategies/flat-folder/big-file/index.ts";
 
 export interface BackfillBigFilesInput {
   knowledgeId: string;

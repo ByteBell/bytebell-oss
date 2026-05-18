@@ -12,21 +12,25 @@ import { assertReachableFromBranch, checkoutCommit, type DiffResult } from "./gi
 import { computePullDiff, materialiseEndpoints } from "./pull-diff-resolver.ts";
 import { affectedFoldersFromDiff } from "./affected-folders.ts";
 import { createDiskSourceReader } from "./disk-source-reader.ts";
-import type { PullFactory, SourceReader, ArchiveSink } from "src/types/pipeline.ts";
-import type { ProgressContextFactory } from "src/progress/types.ts";
-import { nullProgressContextFactory } from "src/progress/NullProgressReporter.ts";
-import { analyseChangedFiles } from "src/strategies/flat-folder/analyse-changed.ts";
-import { processBigFilesQueue } from "src/strategies/flat-folder/phases/process-big-files.ts";
-import { backfillMissingFields } from "src/strategies/flat-folder/backfill/fields.ts";
-import { backfillBigFiles } from "src/strategies/flat-folder/backfill/big-files.ts";
-import { runSelectiveFolderSummary } from "src/strategies/flat-folder/folder-summary-selective.ts";
-import { makeRepoSummaryEnvelope, persistRepoSummary, summariseRepo } from "src/strategies/flat-folder/repo-summary.ts";
-import { storePullAnalysis } from "src/strategies/flat-folder/store-pull.ts";
-import { createLlmFileAnalyzer } from "src/adapters/llm-file-analyzer.ts";
+import type { PullFactory, SourceReader, ArchiveSink } from "#src/types/pipeline.ts";
+import type { ProgressContextFactory } from "#src/progress/types.ts";
+import { nullProgressContextFactory } from "#src/progress/NullProgressReporter.ts";
+import { analyseChangedFiles } from "#src/strategies/flat-folder/analyse-changed.ts";
+import { processBigFilesQueue } from "#src/strategies/flat-folder/phases/process-big-files.ts";
+import { backfillMissingFields } from "#src/strategies/flat-folder/backfill/fields.ts";
+import { backfillBigFiles } from "#src/strategies/flat-folder/backfill/big-files.ts";
+import { runSelectiveFolderSummary } from "#src/strategies/flat-folder/folder-summary-selective.ts";
+import {
+  makeRepoSummaryEnvelope,
+  persistRepoSummary,
+  summariseRepo,
+} from "#src/strategies/flat-folder/repo-summary.ts";
+import { storePullAnalysis } from "#src/strategies/flat-folder/store-pull.ts";
+import { createLlmFileAnalyzer } from "#src/adapters/llm-file-analyzer.ts";
 import {
   COMBINED_CODE_ANALYSIS_SYSTEM_PROMPT,
   buildFileAnalysisUserPrompt,
-} from "src/strategies/flat-folder/prompts/file-analysis.ts";
+} from "#src/strategies/flat-folder/prompts/file-analysis.ts";
 
 const COMMIT_HASH_RE = /^[0-9a-f]{40}$/u;
 

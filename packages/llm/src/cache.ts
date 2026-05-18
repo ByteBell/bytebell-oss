@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-only WITH non-commercial-clause
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";

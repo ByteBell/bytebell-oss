@@ -2,14 +2,14 @@ import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
 import type { AskLlmOptions } from "@bb/llm";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { withConcurrency } from "src/pipeline/concurrency.ts";
-import { throwIfCancelled, CancellationError } from "src/pipeline/cancellation.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import { withConcurrency } from "#src/pipeline/concurrency.ts";
+import { throwIfCancelled, CancellationError } from "#src/pipeline/cancellation.ts";
 import {
   groupByDirectFolder,
   persistFolderSummary,
   summariseFolder,
-} from "src/strategies/flat-folder/folder-summary.ts";
+} from "#src/strategies/flat-folder/folder-summary.ts";
 
 export interface SelectiveFolderSummaryInput {
   knowledgeId: string;

@@ -3,16 +3,16 @@ import { tokenLen, type AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
-import type { ArchiveSink, FileAnalyzer, SkipDecider, SourceReader } from "src/types/pipeline.ts";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import type { BigFileEntry } from "src/types/big-file.ts";
-import type { ProgressContext } from "src/progress/types.ts";
-import { withConcurrency } from "src/pipeline/concurrency.ts";
-import { throwIfCancelled, CancellationError } from "src/pipeline/cancellation.ts";
-import { makeSkipDecider } from "src/pipeline/skip-decisions/index.ts";
-import { analyseScannedFile, buildOversizedStub } from "src/strategies/flat-folder/analyse-file.ts";
-import { saveCondensed } from "src/strategies/flat-folder/big-file/storage.ts";
-import { writeBigFiles } from "src/strategies/flat-folder/big-file/detector.ts";
+import type { ArchiveSink, FileAnalyzer, SkipDecider, SourceReader } from "#src/types/pipeline.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import type { BigFileEntry } from "#src/types/big-file.ts";
+import type { ProgressContext } from "#src/progress/types.ts";
+import { withConcurrency } from "#src/pipeline/concurrency.ts";
+import { throwIfCancelled, CancellationError } from "#src/pipeline/cancellation.ts";
+import { makeSkipDecider } from "#src/pipeline/skip-decisions/index.ts";
+import { analyseScannedFile, buildOversizedStub } from "#src/strategies/flat-folder/analyse-file.ts";
+import { saveCondensed } from "#src/strategies/flat-folder/big-file/storage.ts";
+import { writeBigFiles } from "#src/strategies/flat-folder/big-file/detector.ts";
 
 export interface ClassifyPhaseInput {
   knowledgeId: string;

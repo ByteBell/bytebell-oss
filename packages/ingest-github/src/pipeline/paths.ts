@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { getBytebellHome } from "@bb/config";
-import type { MetaPaths } from "src/types/meta-paths.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
 
 const DIR_MODE = 0o700;
 
@@ -17,8 +17,12 @@ export async function ensureReposRoot(): Promise<void> {
   await mkdir(reposRoot(), { recursive: true, mode: DIR_MODE });
 }
 
+export function metaRootFor(knowledgeId: string): string {
+  return path.join(reposRoot(), ".meta", knowledgeId);
+}
+
 export function metaPathsFor(knowledgeId: string): MetaPaths {
-  const metaRoot = path.join(reposRoot(), ".meta", knowledgeId);
+  const metaRoot = metaRootFor(knowledgeId);
   return {
     metaRoot,
     fileAnalysisDir: path.join(metaRoot, "file-analysis"),
@@ -28,6 +32,35 @@ export function metaPathsFor(knowledgeId: string): MetaPaths {
     bigFilesJson: path.join(metaRoot, "bigFiles.json"),
     repoSummaryJson: path.join(metaRoot, "repo-summary.json"),
   };
+}
+
+/**
+ * Per-commit meta directory for content scoped to a specific indexed commit.
+ * Sits under the knowledge's `metaRoot/commits/<commitHash>/` so it survives
+ * subsequent pulls that overwrite the live `:File` set.
+ */
+export function commitMetaDir(knowledgeId: string, commitHash: string): string {
+  return path.join(metaRootFor(knowledgeId), "commits", commitHash);
+}
+
+/**
+ * Directory for business-context analyses authored against a specific commit.
+ * Each business context lives at `business-context/<sanitizedTitle>/` and contains
+ * `original.txt` (the raw user-authored text) and `analysis.json` (the LLM
+ * analysis wrapped in its metadata envelope).
+ */
+export function businessContextDir(knowledgeId: string, commitHash: string, sanitizedTitle: string): string {
+  return path.join(commitMetaDir(knowledgeId, commitHash), "business-context", sanitizedTitle);
+}
+
+/**
+ * Org-level keyword registry directory. In single-tenant OSS this resolves to
+ * `metaRoot/org/<orgId>/` (orgId defaults to `"local"`); downstream multi-tenant
+ * deployments may aggregate registries across multiple knowledges into the same
+ * directory. The business-context enrichment reader tolerates missing files.
+ */
+export function orgRegistryDir(knowledgeId: string, orgId: string): string {
+  return path.join(metaRootFor(knowledgeId), "org", orgId);
 }
 
 export async function ensureMetaDirs(paths: MetaPaths): Promise<void> {

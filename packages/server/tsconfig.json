@@ -1,19 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist"
-  },
-  "include": ["src/**/*"],
-  "references": [
-    { "path": "../config" },
-    { "path": "../errors" },
-    { "path": "../ingest-github" },
-    { "path": "../mcp" },
-    { "path": "../mongo" },
-    { "path": "../neo4j" },
-    { "path": "../queue" },
-    { "path": "../redis" },
-    { "path": "../types" }
-  ]
+  "extends": "../../../../tsconfig.base.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.json"]
 }

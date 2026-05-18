@@ -8,6 +8,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "imports": {
+    "#src/*": "./src/*"
+  },
   "dependencies": {
     "@bb/config": "workspace:*",
     "@bb/logger": "workspace:*",

@@ -4,6 +4,7 @@ export type {
   GithubIndexPayload,
   GithubPullPayload,
   LocalIngestPayload,
+  BusinessContextProcessingPayload,
   JobMessage,
   PayloadFor,
   PayloadLlmOverrides,

@@ -2,14 +2,14 @@ import { readFile } from "node:fs/promises";
 import { logger } from "@bb/logger";
 import { ensureFlatFolderIndexes, upsertFileNode, upsertFolderNode, upsertRepoNode, type NodeScope } from "@bb/neo4j";
 import type { GithubIndexPayload } from "@bb/types";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { throwIfCancelled } from "src/pipeline/cancellation.ts";
-import { iterateCondensed } from "src/strategies/flat-folder/big-file/storage.ts";
-import { iterateFolderSummaries } from "src/strategies/flat-folder/folder-summary.ts";
-import { directFolderOf } from "src/strategies/flat-folder/folder-path.ts";
-import { languageFromPath } from "src/adapters/llm-file-analyzer.ts";
-import type { ProgressContext } from "src/progress/types.ts";
-import type { FolderSummary, RepoSummary, RepoSummaryEnvelope } from "src/strategies/flat-folder/types.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import { throwIfCancelled } from "#src/pipeline/cancellation.ts";
+import { iterateCondensed } from "#src/strategies/flat-folder/big-file/storage.ts";
+import { iterateFolderSummaries } from "#src/strategies/flat-folder/folder-summary.ts";
+import { directFolderOf } from "#src/strategies/flat-folder/folder-path.ts";
+import { languageFromPath } from "#src/adapters/llm-file-analyzer.ts";
+import type { ProgressContext } from "#src/progress/types.ts";
+import type { FolderSummary, RepoSummary, RepoSummaryEnvelope } from "#src/strategies/flat-folder/types.ts";
 
 export interface StoreFlatAnalysisInput {
   scope: NodeScope;
