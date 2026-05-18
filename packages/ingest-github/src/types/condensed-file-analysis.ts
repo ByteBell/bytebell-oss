@@ -11,4 +11,5 @@ export interface CondensedFileAnalysis {
   totalTokenCount: number;
   analysedAt: string;
   analysis: FileAnalysis;
+  tokenUsage?: { inputTokens: number; outputTokens: number; costUsd: number } | undefined;
 }

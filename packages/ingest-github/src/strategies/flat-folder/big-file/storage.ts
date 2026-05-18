@@ -1,9 +1,9 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { encodeMetaPath } from "src/pipeline/paths.ts";
-import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
-import type { ChunkAnalysisResult, HugeFileManifest } from "src/types/big-file.ts";
-import type { MetaPaths } from "src/types/meta-paths.ts";
+import { encodeMetaPath } from "#src/pipeline/paths.ts";
+import type { CondensedFileAnalysis } from "#src/types/condensed-file-analysis.ts";
+import type { ChunkAnalysisResult, HugeFileManifest } from "#src/types/big-file.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
 
 const DIR_MODE = 0o700;
 

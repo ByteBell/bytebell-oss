@@ -7,9 +7,9 @@ package-level contract; this file documents how the source tree is split.
 
 - **[index.ts](index.ts)** — public re-exports. The only entry point other
   packages may import. Exposes `connectMongo`, `closeMongo`, `pingMongo`,
-  `setKnowledgeState`, `upsertRawFile`, and the `PingResult` /
-  `FileAnalysis` / `RawFileDoc` types. Anything not re-exported here is
-  internal.
+  `setKnowledgeState`, `markKnowledgeFailed`, `upsertRawFile`, and the
+  `PingResult` / `FileAnalysis` / `RawFileDoc` types. Anything not
+  re-exported here is internal.
 - **[client.ts](client.ts)** — module-scoped `MongoClient` singleton plus
   the lifecycle (`connectMongo`, `closeMongo`), the health probe
   (`pingMongo`), and the **internal** `_getDb()` accessor. Reads the URI via
@@ -22,12 +22,19 @@ package-level contract; this file documents how the source tree is split.
   `Collections.Knowledge = "knowledge"`, `Collections.Raw = "raw"`.
   `Nodes` and `Jobs` join when their helpers land. **Internal** — not
   re-exported from `index.ts`; consumed only by helpers in this folder.
-- **[knowledge.ts](knowledge.ts)** — domain CRUD helper:
-  `setKnowledgeState(knowledgeId, state)`. Uses `_getDb()` to access
-  `Collections.Knowledge`, runs `updateOne({ knowledgeId }, { $set: {
-"status.state": state, updatedAt: <now> } })`, and throws
-  `KnowledgeNotFoundError` on `matchedCount === 0`. Called by `@bb/queue`
-  publishers on enqueue.
+- **[knowledge.ts](knowledge.ts)** — domain CRUD helpers:
+  - `setKnowledgeState(knowledgeId, state)` runs
+    `updateOne({ knowledgeId }, { $set: { "status.state": state, updatedAt }, $unset: { failure: "" } })`.
+    The `$unset` of `failure` makes the next successful transition out of
+    FAILED automatically clear any stale failure metadata. Throws
+    `KnowledgeNotFoundError` on `matchedCount === 0`. Called by `@bb/queue`
+    publishers on enqueue and by the runner on terminal success.
+  - `markKnowledgeFailed(knowledgeId, reason, category, detail?)` writes
+    the structured `failure: { reason, category, at, detail? }` subdoc
+    alongside `status.state = "FAILED"`. `reason` is short and
+    operator-readable; `detail` is the optional raw provider response.
+    Called by `@bb/ingest-github/src/pipeline/run.ts` (and `pull.ts`)
+    catch blocks via the shared `classifyFailure` helper.
 - **[raw.ts](raw.ts)** — domain CRUD helpers for `Collections.Raw`. Defines
   the `FileAnalysis` and `RawFileDoc` interfaces (package-local until
   promotion to `@bb/types`). Exports:

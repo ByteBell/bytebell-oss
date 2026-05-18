@@ -15,35 +15,38 @@ Single home for shared types and enums that cross package boundaries:
   `@bb/logger`, `@bb/mongo` — refer to it without wanting an implementation
   dependency on `@bb/config`'s schema/loader/writer.
 - `JobType`, `JobPriority`, `JobMessage<P>`, `GithubIndexPayload`,
-  `GithubPullPayload`, `PayloadFor<T>` — the queue/job vocabulary shared
-  between `@bb/queue` (publisher) and future `@bb/ingest-*` packages
-  (worker handlers).
+  `GithubPullPayload`, `LocalIngestPayload`, `PayloadFor<T>`,
+  `PayloadLlmOverrides` — the queue/job vocabulary shared between
+  `@bb/queue` (publisher) and `@bb/ingest-*` packages (worker handlers).
+  `PayloadLlmOverrides` is the optional `{ llmApiKey?, llmProvider?,
+llmModel?, llmKeyId? }` mixin that lets downstream consumers carry per-job
+  LLM credentials through the payload (the extension point used by the
+  enterprise wrapper to inject per-org credentials at the enqueue
+  boundary). `llmProvider` is intentionally typed as `string` rather than
+  a closed union — OSS standalone uses `"openrouter"`/`"ollama"`, but
+  downstream consumers may carry richer taxonomies (`"anthropic"`,
+  `"gemini"`, …) that OSS ignores at runtime. `llmKeyId` is opaque to OSS;
+  it's an audit pointer kept by downstream consumers. Mixed into both
+  GitHub payloads.
 - `KnowledgeState` — the processing-status lifecycle enum (`CREATED →
 QUEUED → INGESTED → PROCESSING → PROCESSED ↘ FAILED`) referenced by
   `@bb/queue` (writes `QUEUED`), `@bb/mongo` (`setKnowledgeState`), and
   future ingest workers.
+- `KnowledgeDoc`, `KnowledgeSource`, `GithubKnowledgeSource`,
+  `LocalKnowledgeSource`, `KnowledgeInfo` — the cross-package shape of the
+  Mongo `knowledge` document. Split into two substructures with
+  non-overlapping responsibilities: `KnowledgeSource` discriminates the
+  upstream type (github vs local) and carries per-kind ingestion state —
+  for github, the current head commit and the full commit history; for
+  local, the on-disk path. `KnowledgeInfo` carries the repo coordinates the
+  pipeline reads on every run (URL and branch); it has an open shape so
+  downstream consumers can attach extra fields without forcing schema
+  changes here. The pull pipeline reads URL and branch off `KnowledgeInfo`
+  directly — there is no fallback chain to `KnowledgeSource`.
 
-Future inhabitants (added on need basis): full `Knowledge`, `Raw`,
-`Node`, `MCP*` document shapes — the cross-package domain types named in
+Future inhabitants (added on need basis): full `Raw`, `Node`, `MCP*`
+document shapes — the cross-package domain types named in
 [docs/arch.md:69](../../docs/arch.md#L69).
-
-## Public exports
-
-```ts
-enum Config { ... }
-
-enum JobType     { GithubIndex, GithubPull }
-enum JobPriority { Low, Normal, High }
-interface GithubIndexPayload { knowledgeId, repoUrl, branch?, commitHash?, gitToken? }
-interface GithubPullPayload  { knowledgeId, targetCommitHash?, gitToken? }
-interface JobMessage<P>      { id, type, priority, knowledgeId, attempt, createdAt, payload }
-type      PayloadFor<T extends JobType>
-
-enum KnowledgeState { Created, Queued, Ingested, Processing, Processed, Failed }
-```
-
-Add new shared types here only when **two or more** packages need to refer
-to the same shape.
 
 ## Data ownership
 

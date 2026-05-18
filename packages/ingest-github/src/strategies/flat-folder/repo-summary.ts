@@ -1,10 +1,11 @@
 import { writeFile } from "node:fs/promises";
-import { askJsonLLM, tokenLen } from "@bb/llm";
+import { askJsonLLM, tokenLen, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { throwIfCancelled } from "src/pipeline/cancellation.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import { throwIfCancelled } from "#src/pipeline/cancellation.ts";
 import { iterateFolderSummaries } from "./folder-summary.ts";
 import {
   REPO_SUMMARY_SYSTEM_PROMPT,
@@ -25,14 +26,24 @@ interface RepoSummaryJson {
   keyPatterns?: unknown;
 }
 
-export async function summariseRepo(knowledgeId: string, metaPaths: MetaPaths): Promise<RepoSummary | null> {
+export async function summariseRepo(
+  knowledgeId: string,
+  metaPaths: MetaPaths,
+  llmCallContext?: AskLlmOptions,
+): Promise<{
+  summary: RepoSummary | null;
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
+}> {
   const folders: FolderSummary[] = [];
   for await (const f of iterateFolderSummaries(metaPaths)) {
     folders.push(f);
   }
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalCostUsd = 0;
   if (folders.length === 0) {
     logger.warn(`phase6: no folder summaries on disk; skipping repo summary`);
-    return null;
+    return { summary: null, tokenUsage: { inputTokens: 0, outputTokens: 0, costUsd: 0 } };
   }
   folders.sort((a, b) => a.folderPath.split("/").length - b.folderPath.split("/").length);
   const infos = repoFolderInfosFrom(folders);
@@ -42,7 +53,7 @@ export async function summariseRepo(knowledgeId: string, metaPaths: MetaPaths): 
   const oneShotPrompt = buildRepoPromptFromFolders(infos);
   if (tokenLen(oneShotPrompt) + promptOverhead <= contextLimit) {
     throwIfCancelled(knowledgeId);
-    return await callRepoSummary(oneShotPrompt);
+    return await callRepoSummary(oneShotPrompt, llmCallContext);
   }
 
   logger.info(`phase6: repo prompt > ${contextLimit} tokens; batching`);
@@ -50,32 +61,75 @@ export async function summariseRepo(knowledgeId: string, metaPaths: MetaPaths): 
   const partials: string[] = [];
   for (const batch of batches) {
     throwIfCancelled(knowledgeId);
-    const partial = await callRepoSummary(buildRepoPromptFromFolders(batch));
+    const { summary: partial, tokenUsage } = await callRepoSummary(buildRepoPromptFromFolders(batch), llmCallContext);
+    totalInputTokens += tokenUsage.inputTokens;
+    totalOutputTokens += tokenUsage.outputTokens;
+    totalCostUsd += tokenUsage.costUsd;
     if (partial !== null) {
       partials.push(JSON.stringify(partial));
     }
   }
   if (partials.length === 0) {
-    return null;
+    return {
+      summary: null,
+      tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
+    };
   }
   if (partials.length === 1) {
-    return JSON.parse(partials[0] ?? "null") as RepoSummary | null;
+    return {
+      summary: JSON.parse(partials[0] ?? "null") as RepoSummary | null,
+      tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
+    };
   }
   throwIfCancelled(knowledgeId);
-  return await callRepoSummary(buildRepoMergePrompt(partials));
+  const { summary: final, tokenUsage: finalUsage } = await callRepoSummary(
+    buildRepoMergePrompt(partials),
+    llmCallContext,
+  );
+  return {
+    summary: final,
+    tokenUsage: {
+      inputTokens: totalInputTokens + finalUsage.inputTokens,
+      outputTokens: totalOutputTokens + finalUsage.outputTokens,
+      costUsd: totalCostUsd + finalUsage.costUsd,
+    },
+  };
 }
 
-async function callRepoSummary(userPrompt: string): Promise<RepoSummary | null> {
+async function callRepoSummary(
+  userPrompt: string,
+  llmCallContext?: AskLlmOptions,
+): Promise<{
+  summary: RepoSummary | null;
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
+}> {
   try {
-    const response = await askJsonLLM<RepoSummaryJson>(REPO_SUMMARY_SYSTEM_PROMPT, userPrompt);
+    const response = await askJsonLLM<RepoSummaryJson>(REPO_SUMMARY_SYSTEM_PROMPT, userPrompt, llmCallContext ?? {});
     if (response.result === null) {
-      return null;
+      return {
+        summary: null,
+        tokenUsage: {
+          inputTokens: response.usage.inputTokens,
+          outputTokens: response.usage.outputTokens,
+          costUsd: response.usage.costUsd,
+        },
+      };
     }
-    return shapeRepoSummary(response.result);
+    return {
+      summary: shapeRepoSummary(response.result),
+      tokenUsage: {
+        inputTokens: response.usage.inputTokens,
+        outputTokens: response.usage.outputTokens,
+        costUsd: response.usage.costUsd,
+      },
+    };
   } catch (cause: unknown) {
+    if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+      throw cause;
+    }
     const msg = cause instanceof Error ? cause.message : String(cause);
     logger.warn(`callRepoSummary: askJsonLLM failed: ${msg}`);
-    return null;
+    return { summary: null, tokenUsage: { inputTokens: 0, outputTokens: 0, costUsd: 0 } };
   }
 }
 

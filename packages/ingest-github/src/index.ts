@@ -10,25 +10,36 @@ import {
   COMBINED_CODE_ANALYSIS_SYSTEM_PROMPT,
   buildFileAnalysisUserPrompt,
 } from "./strategies/flat-folder/prompts/file-analysis.ts";
-import type { SourceFactory } from "./types/pipeline.ts";
+import type { PullFactory, SourceFactory } from "./types/pipeline.ts";
+import type { ProgressContextFactory } from "./progress/types.ts";
+import { nullProgressContextFactory } from "./progress/NullProgressReporter.ts";
 
 /**
- * Optional dependencies for the GitHub workers. Today only one field is
- * exposed: a source factory. Documented in `docs/extension-points.md`.
- * The open-source binary leaves this undefined — the default disk reader
- * runs unchanged.
+ * Optional dependencies for the GitHub workers. Factories are documented in
+ * `docs/extension-points.md`. The open-source binary leaves them undefined —
+ * index and pull use the default disk-backed readers, and progress events
+ * are discarded by `nullProgressContextFactory`.
  */
 export interface RegisterGithubWorkersDeps {
   sourceFactory?: SourceFactory;
+  pullFactory?: PullFactory;
+  progressContextFactory?: ProgressContextFactory;
 }
 
-function buildRunner(sourceFactory: SourceFactory | undefined): ReturnType<typeof createPipelineRunner> {
+function buildRunner(
+  sourceFactory: SourceFactory | undefined,
+  progressContextFactory: ProgressContextFactory,
+): ReturnType<typeof createPipelineRunner> {
   const fileAnalyzer = createLlmFileAnalyzer({
     buildSystemPrompt: () => COMBINED_CODE_ANALYSIS_SYSTEM_PROMPT,
     buildUserPrompt: buildFileAnalysisUserPrompt,
   });
-  const strategy = createFlatFolderStrategy({ fileAnalyzer });
-  const runnerDeps: Parameters<typeof createPipelineRunner>[0] = { reposRootDir: reposRoot(), strategy };
+  const strategy = createFlatFolderStrategy({ fileAnalyzer, progressContextFactory });
+  const runnerDeps: Parameters<typeof createPipelineRunner>[0] = {
+    reposRootDir: reposRoot(),
+    strategy,
+    progressContextFactory,
+  };
   if (sourceFactory !== undefined) {
     runnerDeps.sourceFactory = sourceFactory;
   }
@@ -36,19 +47,49 @@ function buildRunner(sourceFactory: SourceFactory | undefined): ReturnType<typeo
 }
 
 export function registerGithubWorkers(deps: RegisterGithubWorkersDeps = {}): void {
-  const runner = buildRunner(deps.sourceFactory);
-  registerWorker(JobType.GithubIndex, createGithubIngestHandler({ runner }));
-  registerWorker(JobType.GithubPull, runPull);
+  const progressContextFactory = deps.progressContextFactory ?? nullProgressContextFactory;
+  const runner = buildRunner(deps.sourceFactory, progressContextFactory);
+  // `registerWorker` expects `Promise<void>`; the handler now returns
+  // `Promise<PipelineSummary>` so the enterprise queue bridge can mirror
+  // per-commit tokens + cost into the knowledge record. The OSS in-process
+  // worker discards the summary — local stats are read off
+  // `source.commitHashes[]` via `bytebell stats` instead.
+  const indexHandler = createGithubIngestHandler({ runner });
+  registerWorker(JobType.GithubIndex, async (msg) => {
+    await indexHandler(msg);
+  });
+  const pullFactory = deps.pullFactory;
+  registerWorker(JobType.GithubPull, async (msg) => {
+    await runPull(msg, pullFactory, progressContextFactory);
+  });
 }
 
 export function registerLocalIngestWorker(): void {
-  const runner = buildRunner(undefined);
-  registerWorker(JobType.LocalIngest, createLocalIngestHandler({ runner }));
+  const runner = buildRunner(undefined, nullProgressContextFactory);
+  const localHandler = createLocalIngestHandler({ runner });
+  registerWorker(JobType.LocalIngest, async (msg) => {
+    await localHandler(msg);
+  });
 }
 
 export { createFlatFolderStrategy } from "./strategies/flat-folder/index.ts";
 export { createLlmFileAnalyzer } from "./adapters/llm-file-analyzer.ts";
 export { createDiskSourceReader } from "./pipeline/disk-source-reader.ts";
+export { createPipelineRunner } from "./pipeline/run.ts";
+export type { CreatePipelineRunnerDeps } from "./pipeline/run.ts";
+export { createGithubIngestHandler, createLocalIngestHandler } from "./handlers/ingest-job.ts";
+export type { IngestJobHandlerDeps } from "./handlers/ingest-job.ts";
+export { runPull } from "./pipeline/pull.ts";
+export {
+  reposRoot,
+  repoCloneDir,
+  metaRootFor,
+  metaPathsFor,
+  commitMetaDir,
+  businessContextDir,
+  orgRegistryDir,
+} from "./pipeline/paths.ts";
+export type { IngestRunnerDeps, IngestRunnerInput } from "./types/ingest-runner.ts";
 export type { IngestStrategy, StrategyInput, StrategyResult, StrategyContext } from "./types/strategy.ts";
 export type {
   FileAnalyzer,
@@ -63,7 +104,32 @@ export type {
   SourceFactory,
   SourceFactoryInput,
   SourceFactoryResult,
+  PullFactory,
+  PullFactoryInput,
+  PullFactoryResult,
 } from "./types/pipeline.ts";
+export type { DiffResult, RenamedFile } from "./pipeline/git-diff.ts";
 export type { CondensedFileAnalysis } from "./types/condensed-file-analysis.ts";
-export { fetchLatestCommitHash, fetchRecentCommits, parseGithubRepo } from "./githubApi.ts";
-export type { CommitEntry, FetchCommitsResult, ParsedRepo } from "./githubApi.ts";
+export {
+  fetchLatestCommitHash,
+  fetchRecentCommits,
+  fetchDefaultBranch,
+  fetchBranches,
+  parseGithubRepo,
+} from "./githubApi.ts";
+export type { CommitEntry, FetchCommitsResult, ParsedRepo, DefaultBranchResult } from "./githubApi.ts";
+export { bootstrapRuntime } from "./bootstrap.ts";
+export type { BootstrapRuntimeOptions } from "./bootstrap.ts";
+export {
+  COMBINED_CODE_ANALYSIS_SYSTEM_PROMPT,
+  buildFileAnalysisUserPrompt,
+} from "./strategies/flat-folder/prompts/file-analysis.ts";
+export type {
+  ProgressContext,
+  ProgressContextFactory,
+  ProgressPhase,
+  ProgressReporter,
+  ProgressReporterInput,
+  ProgressTotalMode,
+} from "./progress/types.ts";
+export { nullProgressContextFactory } from "./progress/NullProgressReporter.ts";

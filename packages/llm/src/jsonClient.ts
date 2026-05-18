@@ -61,7 +61,7 @@ export async function askYesNoLLM(
     }
     return { decision: null, usage, raw: content };
   } catch {
-    return { decision: null, usage: { model: "", inputTokens: 0, outputTokens: 0 }, raw: "" };
+    return { decision: null, usage: { model: "", inputTokens: 0, outputTokens: 0, costUsd: 0 }, raw: "" };
   }
 }
 
@@ -73,18 +73,37 @@ export async function askJsonLLM<T>(
   const maxRetries = opts.maxRetries ?? 1;
   const baseOpts: AskLlmOptions = { ...opts, systemPrompt };
 
-  let lastUsage: AskLlmUsage = { model: "", inputTokens: 0, outputTokens: 0 };
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalCostUsd = 0;
+  let lastModel = "";
   let lastRaw = "";
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     const { content, usage } = await askLLM(userPrompt, baseOpts);
-    lastUsage = usage;
+    totalInputTokens += usage.inputTokens;
+    totalOutputTokens += usage.outputTokens;
+    totalCostUsd += usage.costUsd;
+    lastModel = usage.model;
     lastRaw = content;
     const parsed = tryParseJson<T>(content);
     if (parsed !== null) {
-      return { result: parsed, usage, raw: content };
+      return {
+        result: parsed,
+        usage: {
+          model: usage.model,
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+          costUsd: totalCostUsd,
+        },
+        raw: content,
+      };
     }
   }
 
-  return { result: null, usage: lastUsage, raw: lastRaw };
+  return {
+    result: null,
+    usage: { model: lastModel, inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
+    raw: lastRaw,
+  };
 }

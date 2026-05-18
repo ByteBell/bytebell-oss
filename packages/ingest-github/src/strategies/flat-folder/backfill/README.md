@@ -7,26 +7,33 @@ Both are idempotent and skip entries that already look complete.
 
 ## Files
 
-- `fields.ts` — Phase 3. `backfillMissingFields(metaPaths)` iterates every
-  condensed entry via `iterateCondensed`, computes which extended-analysis
-  fields are missing (`keywords`, `ontologyConcepts`, `businessEntities`,
-  `systemCapabilities`, `sideEffects`, `configDependencies`,
-  `dataFlowDirection`, `integrationSurface`, `contractsProvided`,
-  `contractsConsumed`, `sectionMap`), and asks one LLM call per file to
-  fill only the missing slots. The response is validated and normalised
-  (`pickStringArray`, `pickSections`) before being written back via
-  `saveCondensed`. Entries with nothing missing are skipped without an
-  LLM call.
+- `fields.ts` — Phase 3. `backfillMissingFields(metaPaths, llmCallContext?, progressContext?)`
+  iterates every condensed entry via `iterateCondensed`, computes which
+  extended-analysis fields are missing (`keywords`, `ontologyConcepts`,
+  `businessEntities`, `systemCapabilities`, `sideEffects`,
+  `configDependencies`, `dataFlowDirection`, `integrationSurface`,
+  `contractsProvided`, `contractsConsumed`, `sectionMap`), and asks one
+  LLM call per file to fill only the missing slots. The response is
+  validated and normalised (`pickStringArray`, `pickSections`) before
+  being written back via `saveCondensed`. Entries with nothing missing
+  are skipped without an LLM call. When `progressContext` is present
+  this phase opens a growing-total reporter (`subPhase: "backfill"`)
+  because `iterateCondensed`'s size is not known up front.
 - `big-files.ts` — Phase 4. `backfillBigFiles({knowledgeId, repoDir,
-metaPaths})` re-reads `bigFiles.json`, skips `reason === "too-large"`,
-  and for each non-complete entry (per `inspect`) re-runs `processBigFile`
-  against the file on disk so the condensed JSON is rebuilt from cached
-  chunks where possible.
+metaPaths, llmCallContext?, progressContext?})` re-reads
+  `bigFiles.json`, skips `reason === "too-large"`, and for each
+  non-complete entry (per `inspect`) re-runs `processBigFile` against
+  the file on disk so the condensed JSON is rebuilt from cached chunks
+  where possible. When `progressContext` is present this phase opens a
+  fixed-total reporter (`subPhase: "backfill:big_files"`, sized by
+  `bigFiles.json`) and forwards itself into `processBigFile` so per-file
+  chunk pulses also surface.
 
 ## Public interfaces
 
-- `backfillMissingFields(metaPaths): Promise<{ updated, failed }>`
+- `backfillMissingFields(metaPaths, llmCallContext?, progressContext?): Promise<{ updated, failed }>`
 - `backfillBigFiles(input: BackfillBigFilesInput): Promise<BackfillBigFilesResult>`
+  — `BackfillBigFilesInput` carries an optional `llmCallContext?: AskLlmOptions` that the inner `processBigFile` call uses to forward per-job LLM credentials, and an optional `progressContext?: ProgressContext` for the per-phase reporter described above.
 
 Both return phase-summary counters consumed by `createFlatFolderStrategy`
 to roll up into the strategy result.

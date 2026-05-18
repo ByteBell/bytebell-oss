@@ -1,25 +1,28 @@
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { withConcurrency } from "src/pipeline/concurrency.ts";
-import { throwIfCancelled, CancellationError } from "src/pipeline/cancellation.ts";
+import type { AskLlmOptions } from "@bb/llm";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import { withConcurrency } from "#src/pipeline/concurrency.ts";
+import { throwIfCancelled, CancellationError } from "#src/pipeline/cancellation.ts";
 import {
   groupByDirectFolder,
   persistFolderSummary,
   summariseFolder,
-} from "src/strategies/flat-folder/folder-summary.ts";
+} from "#src/strategies/flat-folder/folder-summary.ts";
 
 export interface SelectiveFolderSummaryInput {
   knowledgeId: string;
   metaPaths: MetaPaths;
   affectedFolders: Set<string>;
+  llmCallContext?: AskLlmOptions;
 }
 
 export interface SelectiveFolderSummaryResult {
   succeeded: number;
   failed: number;
   skipped: number;
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
 }
 
 /**
@@ -36,6 +39,9 @@ export async function runSelectiveFolderSummary(
   let succeeded = 0;
   let failed = 0;
   let skipped = 0;
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalCostUsd = 0;
   const tasks: Promise<void>[] = [];
   for (const [folderPath, files] of groups.entries()) {
     if (!input.affectedFolders.has(folderPath)) {
@@ -46,7 +52,10 @@ export async function runSelectiveFolderSummary(
       limit(async () => {
         try {
           throwIfCancelled(input.knowledgeId);
-          const summary = await summariseFolder(folderPath, files);
+          const { summary, tokenUsage } = await summariseFolder(folderPath, files, input.llmCallContext);
+          totalInputTokens += tokenUsage.inputTokens;
+          totalOutputTokens += tokenUsage.outputTokens;
+          totalCostUsd += tokenUsage.costUsd;
           if (summary !== null) {
             await persistFolderSummary(input.metaPaths, summary);
             succeeded += 1;
@@ -65,5 +74,10 @@ export async function runSelectiveFolderSummary(
   }
   await Promise.all(tasks);
   logger.info(`pull-folder-summary done: succeeded=${succeeded} failed=${failed} skipped=${skipped}`);
-  return { succeeded, failed, skipped };
+  return {
+    succeeded,
+    failed,
+    skipped,
+    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
+  };
 }

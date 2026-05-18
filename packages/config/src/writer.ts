@@ -1,6 +1,14 @@
 import fs from "node:fs";
 import { configSchema, Config, type BytebellConfig, type ConfigValue, DEFAULT_CONFIG, writeField } from "./schema.ts";
+import { __isSeeded } from "./loader.ts";
 import { getBytebellHome, getConfigPath, __notifyConfigChanged } from "./paths.ts";
+
+export class ConfigSeededError extends Error {
+  constructor() {
+    super("config cache is seeded; setConfigValue is disabled");
+    this.name = "ConfigSeededError";
+  }
+}
 
 const FILE_MODE = 0o600;
 const DIR_MODE = 0o700;
@@ -41,6 +49,9 @@ export function ensureBytebellHome(): void {
 }
 
 export function setConfigValue<K extends Config>(key: K, value: ConfigValue<K>): void {
+  if (__isSeeded()) {
+    throw new ConfigSeededError();
+  }
   ensureBytebellHome();
   const current = readConfigFile();
   const next = writeField(current, key, value);

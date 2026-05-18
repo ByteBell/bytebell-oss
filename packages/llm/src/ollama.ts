@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: AGPL-3.0-only WITH non-commercial-clause
 import { getConfigValue } from "@bb/config";
 import { Config } from "@bb/types";
 import { LlmConfigError, LlmError } from "@bb/errors";
+import { tokenLen } from "./tokenizer.ts";
 import type { AskLlmOptions, AskLlmResult } from "./client.ts";
 
 interface OllamaMessage {
@@ -85,8 +85,12 @@ export async function callOllama(prompt: string, opts: AskLlmOptions, timeoutMs:
     content,
     usage: {
       model: typeof json.model === "string" && json.model.length > 0 ? json.model : model,
-      inputTokens: typeof json.prompt_eval_count === "number" ? json.prompt_eval_count : 0,
-      outputTokens: typeof json.eval_count === "number" ? json.eval_count : 0,
+      inputTokens:
+        typeof json.prompt_eval_count === "number"
+          ? json.prompt_eval_count
+          : tokenLen((opts.systemPrompt ?? "") + prompt),
+      outputTokens: typeof json.eval_count === "number" ? json.eval_count : tokenLen(content),
+      costUsd: 0,
     },
   };
 }

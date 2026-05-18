@@ -8,9 +8,11 @@ package-level contract; this file documents how the source tree is split.
 - **[index.ts](index.ts)** — public re-exports. The only entry point other
   packages may import. Anything not re-exported here is internal.
 - **[paths.ts](paths.ts)** — `getBytebellHome`, `getConfigPath`, and the
-  cache-invalidator registry. Holds the `testHomeOverride` state used by
-  `__setBytebellHomeForTests`. Pure: imports nothing from the rest of the
-  package.
+  cache-invalidator registry. Holds the `testHomeOverride` slot set by
+  `__setBytebellHomeForTests` and the `homeResolver` slot set by
+  `setBytebellHomeResolver`. `getBytebellHome` consults the test override
+  first, then the resolver (if set and returning non-null), then falls back
+  to `~/.bytebell`. Pure: imports nothing from the rest of the package.
 - **[schema.ts](schema.ts)** — Zod `configSchema`, `BytebellConfig` type,
   `ConfigValueMap`, `DEFAULT_CONFIG`, `REQUIRED_KEYS` (infra-always),
   `requiredKeysFor(provider)` (combines infra + provider-specific keys

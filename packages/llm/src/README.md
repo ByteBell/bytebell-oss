@@ -6,20 +6,37 @@ package-level contract; this file documents how the source tree is split.
 ## Files
 
 - **[index.ts](index.ts)** — public re-exports. The only entry point other
-  packages may import. Exposes `askLLM` and the `AskLlmOptions` type.
-  Anything not re-exported here is internal.
-- **[client.ts](client.ts)** — the `askLLM` implementation. Reads
-  `Config.OpenrouterApiKey`, the primary `Config.OpenrouterModel`, and
-  the four fallback slots `Config.OpenrouterFallbackModel1..4` via
-  `@bb/config`. Builds the deduplicated chain `[primary, ...nonEmpty
-(slot1..4)]`; if the chain has ≥2 entries the request body includes a
-  `models: [...]` array so OpenRouter routes among them natively. Builds
-  the `messages` array (optional system prompt + user prompt), POSTs to
-  OpenRouter via Bun's built-in `fetch` with an AbortController timeout,
-  parses the typed `OpenRouterResponse`, returns the first choice's
-  content. `usage.model` reflects which model OpenRouter actually
-  routed to. Throws `LlmConfigError` if the API key is empty, `LlmError`
-  on timeout / HTTP non-2xx / empty completion.
+  packages may import. Exposes `askLLM`, the `AskLlmOptions` type, the
+  `LlmProviderName` union (`"openrouter" | "ollama"`), plus the JSON
+  client surface. Anything not re-exported here is internal.
+- **[client.ts](client.ts)** — the `askLLM` orchestrator. Selects the
+  active provider via `opts.provider ?? getConfigValue(Config.LlmProvider)`
+  (per-call override beats config), dispatches to `openrouter.ts` or
+  `ollama.ts`. Consults the filesystem decision cache before issuing a
+  request. Throws typed errors via `@bb/errors`.
+- **[openrouter.ts](openrouter.ts)** — `callOpenRouter` and
+  `resolveOpenRouterChain`. Reads the API key as `opts.apiKey
+?? getConfigValue(Config.OpenrouterApiKey)` (per-call override beats
+  config), reads the model chain (`opts.model`, `opts.fallbackModels`,
+  or `Config.OpenrouterModel` + four fallback slots), caps the chain at
+  3 entries (OpenRouter's hard limit), POSTs to the chat-completions
+  endpoint with an AbortController timeout, parses the typed
+  `OpenRouterResponse`, returns the first choice's content. `usage.model`
+  reflects which model OpenRouter actually routed to. Throws
+  `LlmConfigError` if the API key resolves to empty, `LlmError` on
+  timeout / HTTP non-2xx / empty completion.
+- **[ollama.ts](ollama.ts)** — `callOllama` and `resolveOllamaChain`.
+  Single-model per request (Ollama has no fan-out). Reads model from
+  `opts.model ?? Config.OllamaModel`. Ignores `opts.apiKey` (Ollama is
+  keyless).
+- **[jsonClient.ts](jsonClient.ts)** — `askJsonLLM`, `askYesNoLLM`,
+  `tryParseJson`, `stripJsonFence`. Wraps `askLLM` with JSON-strict
+  retry logic. Forwards `opts` (including `apiKey` / `provider` / `model`)
+  to `askLLM` unchanged.
+- **[cache.ts](cache.ts)** — filesystem-backed decision cache. Key
+  includes `provider` and `modelChain`; `opts.apiKey` is intentionally
+  NOT part of the key (the cached decision is the same regardless of
+  which key produced it — keys are auth, not semantic input).
 - **[tokenizer.ts](tokenizer.ts)** — `tokenLen`, `encodeTokens`,
   `decodeTokens`. Module-cached `tiktoken` encoder using `cl100k_base`,
   lazy-initialized via `get_encoding`. All three helpers fall back to
@@ -56,8 +73,9 @@ pricing).
   `bytebell keys set` hint; `LlmError` accepts an optional `cause` and
   composes a single-line message capped at 500 chars of any HTTP error
   body (so the logger doesn't blow up on multi-MB error responses).
-- **No env reads.** Only `getConfigValue(Config.OpenrouterApiKey)` /
-  `getConfigValue(Config.OpenrouterModel)` provide secrets/config.
+- **No env reads.** Secrets come from `opts.apiKey` first, then
+  `getConfigValue(Config.OpenrouterApiKey)`. Same fallback shape for the
+  provider switch via `opts.provider` → `Config.LlmProvider`.
 - **Empty completions are errors.** A 200 OK with no `choices[0].message
 .content` throws `LlmError("OpenRouter returned empty completion")` —
   do not silently return an empty string.

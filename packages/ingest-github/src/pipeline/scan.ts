@@ -2,9 +2,10 @@ import { opendir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
+import type { AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
 import { SKIP_DIRS, looksBinary, passesPathFilters } from "./filters.ts";
-import type { ScanEntry, SkipDecider } from "src/types/pipeline.ts";
+import type { ScanEntry, SkipDecider } from "#src/types/pipeline.ts";
 
 interface ScanLimits {
   absoluteCap: number;
@@ -13,6 +14,7 @@ interface ScanLimits {
 
 export interface ScanRepositoryDeps {
   skipDecider?: SkipDecider;
+  llmCallContext?: AskLlmOptions;
 }
 
 export async function* scanRepository(rootDir: string, deps: ScanRepositoryDeps = {}): AsyncGenerator<ScanEntry> {
@@ -80,7 +82,11 @@ async function* walk(
       continue;
     }
     if (deps.skipDecider !== undefined) {
-      const decision = await deps.skipDecider.decide({ relativePath, absolutePath: abs, ext });
+      const deciderInput: Parameters<typeof deps.skipDecider.decide>[0] = { relativePath, absolutePath: abs, ext };
+      if (deps.llmCallContext !== undefined) {
+        deciderInput.llmCallContext = deps.llmCallContext;
+      }
+      const decision = await deps.skipDecider.decide(deciderInput);
       if (decision === "reject-static") {
         counts.rejectStatic += 1;
         continue;

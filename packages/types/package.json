@@ -8,5 +8,8 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "imports": {
+    "#src/*": "./src/*"
+  },
   "dependencies": {}
 }

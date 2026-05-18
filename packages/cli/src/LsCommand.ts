@@ -4,17 +4,8 @@ import { getConfigValue } from "@bb/config";
 import { ensureServerRunning, ServerStartTimeoutError } from "./serverSpawn.ts";
 import { getJson, HttpClientError } from "./httpClient.ts";
 import { createSpinner, error } from "./output.ts";
-
-interface RepoEntry {
-  knowledgeId: string;
-  source:
-    | { kind: "github"; repoUrl: string; branch?: string; commitId?: string; commitHashes?: string[] }
-    | { kind: "local"; sourcePath: string };
-  state: string;
-  createdAt: string;
-  updatedAt: string;
-  fileCount: number;
-}
+import { promptLsInteractive } from "./lsInteractivePrompt.ts";
+import type { RepoEntry } from "./LsInteractive.tsx";
 
 interface ListResponse {
   repos: RepoEntry[];
@@ -22,11 +13,15 @@ interface ListResponse {
 
 export function buildLsCommand(): Command {
   const cmd = new Command("ls");
-  cmd.description("List indexed knowledge entries.").action(runLs);
+  cmd
+    .description("List indexed knowledge entries.")
+    .option("-i, --interactive", "Use interactive selector to browse entries.", true)
+    .option("--no-interactive", "Display a plain table instead of the interactive selector.")
+    .action(runLs);
   return cmd;
 }
 
-async function runLs(): Promise<void> {
+async function runLs(options: { interactive?: boolean }): Promise<void> {
   try {
     let ctx: Awaited<ReturnType<typeof ensureServerRunning>>;
     if (
@@ -47,6 +42,12 @@ async function runLs(): Promise<void> {
       );
       return;
     }
+
+    if (options.interactive !== false) {
+      await promptLsInteractive(repos);
+      return;
+    }
+
     renderTable(repos);
     process.stdout.write(`\n${repos.length} ${repos.length === 1 ? "entry" : "entries"}.\n`);
   } catch (cause: unknown) {

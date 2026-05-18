@@ -1,4 +1,4 @@
-import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
+import type { CondensedFileAnalysis } from "#src/types/condensed-file-analysis.ts";
 
 export const FOLDER_ANALYSIS_SYSTEM_PROMPT = `You are summarising a single FOLDER of a source repository. The user will provide the per-file analyses of the files DIRECTLY inside that folder (subfolders are summarised separately and are NOT in your input).
 

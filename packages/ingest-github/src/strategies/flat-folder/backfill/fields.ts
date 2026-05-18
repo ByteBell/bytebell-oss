@@ -1,10 +1,12 @@
-import { askJsonLLM } from "@bb/llm";
+import { askJsonLLM, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import type { FileAnalysis, FileAnalysisSection } from "@bb/mongo";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { iterateCondensed } from "src/strategies/flat-folder/big-file/storage.ts";
-import { saveCondensed } from "src/strategies/flat-folder/big-file/storage.ts";
-import { BACKFILL_SYSTEM_PROMPT, buildBackfillUserPrompt } from "src/strategies/flat-folder/prompts/backfill.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import type { ProgressContext } from "#src/progress/types.ts";
+import { iterateCondensed } from "#src/strategies/flat-folder/big-file/storage.ts";
+import { saveCondensed } from "#src/strategies/flat-folder/big-file/storage.ts";
+import { BACKFILL_SYSTEM_PROMPT, buildBackfillUserPrompt } from "#src/strategies/flat-folder/prompts/backfill.ts";
 
 const EXTENDED_ARRAY_KEYS = [
   "ontologyConcepts",
@@ -40,32 +42,53 @@ interface NeededFlags {
   sectionMap: boolean;
 }
 
-export async function backfillMissingFields(metaPaths: MetaPaths): Promise<{ updated: number; failed: number }> {
+export async function backfillMissingFields(
+  metaPaths: MetaPaths,
+  llmCallContext?: AskLlmOptions,
+  progressContext?: ProgressContext,
+): Promise<{ updated: number; failed: number }> {
   let updated = 0;
   let failed = 0;
-  for await (const entry of iterateCondensed(metaPaths)) {
-    const a = entry.analysis;
-    const needed = computeNeeded(a);
-    if (!hasAnyMissing(needed)) {
-      continue;
-    }
-    const userPrompt = buildBackfillUserPrompt(entry.relativePath, entry.analysis);
-    try {
-      const response = await askJsonLLM<BackfillJson>(BACKFILL_SYSTEM_PROMPT, userPrompt);
-      const result = response.result;
-      if (result === null) {
+  const reporter = progressContext?.reporter({
+    phase: "file_analysis",
+    subPhase: "backfill",
+    total: { kind: "growing" },
+  });
+  await reporter?.start();
+  try {
+    for await (const entry of iterateCondensed(metaPaths)) {
+      reporter?.incrementSeen();
+      const a = entry.analysis;
+      const needed = computeNeeded(a);
+      if (!hasAnyMissing(needed)) {
+        reporter?.increment(1, { fileName: entry.relativePath });
         continue;
       }
-      applyBackfill(a, result, needed);
-      await saveCondensed(metaPaths, entry);
-      updated += 1;
-    } catch (cause: unknown) {
-      failed += 1;
-      logger.warn(`phase3: backfill failed for ${entry.relativePath}: ${describe(cause)}`);
+      const userPrompt = buildBackfillUserPrompt(entry.relativePath, entry.analysis);
+      try {
+        const response = await askJsonLLM<BackfillJson>(BACKFILL_SYSTEM_PROMPT, userPrompt, llmCallContext ?? {});
+        const result = response.result;
+        if (result === null) {
+          reporter?.increment(1, { fileName: entry.relativePath });
+          continue;
+        }
+        applyBackfill(a, result, needed);
+        await saveCondensed(metaPaths, entry);
+        updated += 1;
+      } catch (cause: unknown) {
+        if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+          throw cause;
+        }
+        failed += 1;
+        logger.warn(`phase3: backfill failed for ${entry.relativePath}: ${describe(cause)}`);
+      }
+      reporter?.increment(1, { fileName: entry.relativePath });
     }
+    logger.info(`phase3 done: updated=${updated} failed=${failed}`);
+    return { updated, failed };
+  } finally {
+    reporter?.stop();
   }
-  logger.info(`phase3 done: updated=${updated} failed=${failed}`);
-  return { updated, failed };
 }
 
 function computeNeeded(a: FileAnalysis): NeededFlags {

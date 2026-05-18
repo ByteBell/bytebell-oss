@@ -71,11 +71,16 @@ export function buildGithubPullRoute(): Router {
       return;
     }
 
-    const branch = knowledge.source.branch ?? "main";
+    const branch = knowledge.info.branch ?? "main";
+    const repoUrl = knowledge.info.repoUrl;
+    if (repoUrl === undefined || repoUrl.length === 0) {
+      res.status(422).json({ error: "pull requires knowledge.info.repoUrl" });
+      return;
+    }
     let targetCommit = suppliedTarget;
     if (targetCommit === undefined) {
       try {
-        const head = await fetchLatestCommitHash(knowledge.source.repoUrl, branch, gitToken);
+        const head = await fetchLatestCommitHash(repoUrl, branch, gitToken);
         if (head !== null && COMMIT_HASH_RE.test(head)) {
           targetCommit = head;
         }

@@ -8,8 +8,11 @@ no clone — those belong in `pipeline/run.ts`.
 
 - `ingest-job.ts` — `createGithubIngestHandler(deps)` and
   `createLocalIngestHandler(deps)` both return BullMQ-shaped
-  `(msg) => Promise<void>` callbacks. They throw `IngestError` on validation
-  failures; everything else propagates to BullMQ as the worker's failure path.
+  `(msg) => Promise<PipelineSummary>` callbacks (the summary carries
+  per-commit `tokenUsage` including `costUsd` so the enterprise wrapper
+  can mirror it to the knowledge record without a `processing_stats`
+  round-trip). They throw `IngestError` on validation failures;
+  everything else propagates to BullMQ as the worker's failure path.
 - `README.md` — this file.
 
 ## Invariants

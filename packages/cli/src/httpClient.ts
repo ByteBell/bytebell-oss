@@ -12,12 +12,14 @@ export function baseUrl(): string {
 export class HttpClientError extends Error {
   override readonly name = "HttpClientError";
   readonly status: number | undefined;
+  readonly body: unknown | undefined;
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, body?: unknown) {
     super(message);
     if (status !== undefined) {
       this.status = status;
     }
+    this.body = body;
   }
 }
 
@@ -74,17 +76,23 @@ async function parseResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     let message = `HTTP ${res.status}`;
+    let body: unknown = undefined;
     try {
-      const parsed = JSON.parse(text) as { error?: unknown };
-      if (typeof parsed.error === "string") {
-        message = parsed.error;
+      const parsed = JSON.parse(text);
+      body = parsed;
+      if (typeof parsed === "object" && parsed !== null) {
+        if ("error" in parsed && typeof parsed.error === "string") {
+          message = parsed.error;
+        } else if ("message" in parsed && typeof parsed.message === "string") {
+          message = parsed.message;
+        }
       }
     } catch {
       if (text.length > 0) {
         message = text.slice(0, 500);
       }
     }
-    throw new HttpClientError(message, res.status);
+    throw new HttpClientError(message, res.status, body);
   }
   return (await res.json()) as T;
 }

@@ -1,9 +1,15 @@
 export { LOG_LEVELS, LLM_PROVIDERS, HINTS } from "./schema.ts";
 export type { BytebellConfig, ConfigValue, ConfigValueMap, LogLevel, LlmProvider } from "./schema.ts";
 
-export { loadConfig, getConfigValue, isConfigComplete } from "./loader.ts";
+export { loadConfig, getConfigValue, isConfigComplete, seedConfig, __isSeeded, __resetSeedForTests } from "./loader.ts";
 export type { ConfigCompletenessResult } from "./loader.ts";
 
-export { setConfigValue, ensureBytebellHome } from "./writer.ts";
+export { setConfigValue, ensureBytebellHome, ConfigSeededError } from "./writer.ts";
 
-export { getBytebellHome, getConfigPath, isDevMode, __setBytebellHomeForTests } from "./paths.ts";
+export {
+  getBytebellHome,
+  getConfigPath,
+  isDevMode,
+  setBytebellHomeResolver,
+  __setBytebellHomeForTests,
+} from "./paths.ts";

@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
+import type { AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
-import type { ChunkAnalysisResult, HugeFileManifest } from "src/types/big-file.ts";
-import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { throwIfCancelled } from "src/pipeline/cancellation.ts";
+import type { ChunkAnalysisResult, HugeFileManifest } from "#src/types/big-file.ts";
+import type { CondensedFileAnalysis } from "#src/types/condensed-file-analysis.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import type { ProgressContext } from "#src/progress/types.ts";
+import { throwIfCancelled } from "#src/pipeline/cancellation.ts";
 import { splitFileIntoChunks } from "./chunker.ts";
 import { analyzeChunk } from "./chunk-analyzer.ts";
 import { condenseChunks } from "./condenser.ts";
@@ -17,6 +19,8 @@ export interface ProcessBigFileInput {
   relativePath: string;
   content: string;
   sizeBytes: number;
+  llmCallContext?: AskLlmOptions;
+  progressContext?: ProgressContext;
 }
 
 export async function processBigFile(input: ProcessBigFileInput): Promise<CondensedFileAnalysis> {
@@ -28,6 +32,13 @@ export async function processBigFile(input: ProcessBigFileInput): Promise<Conden
 
   const results: ChunkAnalysisResult[] = new Array(chunks.length);
   let nextIndex = 0;
+
+  const reporter = input.progressContext?.reporter({
+    phase: "file_analysis",
+    subPhase: `big_file:${input.relativePath}`,
+    total: { kind: "fixed", total: chunks.length },
+  });
+  await reporter?.start();
 
   const worker = async (): Promise<void> => {
     while (nextIndex < chunks.length) {
@@ -41,26 +52,40 @@ export async function processBigFile(input: ProcessBigFileInput): Promise<Conden
       const cached = await loadChunkIfPresent(input.metaPaths, input.relativePath, idx);
       if (cached !== null) {
         results[idx] = cached;
+        reporter?.increment(1, { fileName: `${input.relativePath}#chunk-${String(idx)}` });
         continue;
       }
-      const analyzed = await analyzeChunk(chunk);
+      const analyzed = await analyzeChunk(chunk, input.llmCallContext);
       await saveChunk(input.metaPaths, analyzed);
       results[idx] = analyzed;
+      reporter?.increment(1, { fileName: `${input.relativePath}#chunk-${String(idx)}` });
     }
   };
 
-  const workerCount = Math.min(concurrency, chunks.length);
-  const workers: Promise<void>[] = [];
-  for (let i = 0; i < workerCount; i += 1) {
-    workers.push(worker());
+  try {
+    const workerCount = Math.min(concurrency, chunks.length);
+    const workers: Promise<void>[] = [];
+    for (let i = 0; i < workerCount; i += 1) {
+      workers.push(worker());
+    }
+    await Promise.all(workers);
+  } finally {
+    reporter?.stop();
   }
-  await Promise.all(workers);
 
   throwIfCancelled(input.knowledgeId);
   const merged = await condenseChunks(input.relativePath, results);
 
   const chunkPaths = chunks.map((_, i) => `chunks/${encodeFolder(input.relativePath)}/chunk-${i}.json`);
   const totalTokenCount = chunks.reduce((acc, c) => acc + c.tokenCount, 0);
+
+  const chunkInputTokens = results.reduce((acc, r) => acc + (r.tokenUsage?.inputTokens ?? 0), 0);
+  const chunkOutputTokens = results.reduce((acc, r) => acc + (r.tokenUsage?.outputTokens ?? 0), 0);
+  const chunkCostUsd = results.reduce((acc, r) => acc + (r.tokenUsage?.costUsd ?? 0), 0);
+  const totalInputTokens = chunkInputTokens + (merged.tokenUsage?.inputTokens ?? 0);
+  const totalOutputTokens = chunkOutputTokens + (merged.tokenUsage?.outputTokens ?? 0);
+  const totalCostUsd = chunkCostUsd + (merged.tokenUsage?.costUsd ?? 0);
+
   const manifest: HugeFileManifest = {
     relativePath: input.relativePath,
     totalChunks: chunks.length,
@@ -81,6 +106,7 @@ export async function processBigFile(input: ProcessBigFileInput): Promise<Conden
     totalTokenCount,
     analysedAt: new Date().toISOString(),
     analysis: merged.analysis,
+    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
   };
   await saveCondensed(input.metaPaths, condensed);
   return condensed;

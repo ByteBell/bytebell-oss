@@ -34,7 +34,9 @@ single-tenant public layout.
 - `decider.ts` — `makeSkipDecider(deps)` returns a `SkipDecider` (port type
   from `src/types/pipeline.ts`). Reads `Config.SkipDecisionEnabled` once at
   factory time; when disabled the decider degrades to "accept everything
-  past the static blocklist".
+  past the static blocklist". The LLM branch forwards
+  `SkipDeciderInput.llmCallContext` (when set by the runner) into
+  `askYesNoLLM` so per-job credentials reach the decision call.
 - `seed-data/` — the five JSON files copied from kube's `shared/`:
   `directoryIgnore.json`, `filenameIgnore.json`, `ignorePatterns.json`,
   `extensions.json`, `llmDecisionsBase.json`. `llmDecisionsBase.json` is

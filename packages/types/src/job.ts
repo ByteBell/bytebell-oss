@@ -2,6 +2,7 @@ export enum JobType {
   GithubIndex = "github_index",
   GithubPull = "github_pull",
   LocalIngest = "local_ingest",
+  BusinessContextProcessing = "CUSTOM_CONTEXT_PROCESSING",
 }
 
 export enum JobPriority {
@@ -10,7 +11,28 @@ export enum JobPriority {
   High = 2,
 }
 
-export interface GithubIndexPayload {
+/**
+ * Optional per-job LLM credential overrides. When set, take precedence over
+ * `Config.OpenrouterApiKey` and `Config.LlmProvider` for the duration of this
+ * job's processing. Used by downstream consumers (e.g. the enterprise wrapper)
+ * that resolve per-org credentials at the enqueue boundary and infuse them
+ * into the payload — OSS standalone leaves all four unset.
+ *
+ * `llmProvider` is intentionally `string` rather than a closed union: OSS
+ * standalone uses `"openrouter"` or `"ollama"` (the only values the LLM
+ * client routes on today), but downstream consumers may carry richer
+ * provider taxonomies (`"anthropic"`, `"gemini"`, `"mistral"`, …) that the
+ * OSS client ignores. The `llmKeyId` field is opaque to OSS — kept as an
+ * audit pointer back to the resolver's source of truth.
+ */
+export interface PayloadLlmOverrides {
+  llmApiKey?: string;
+  llmProvider?: string;
+  llmModel?: string;
+  llmKeyId?: string;
+}
+
+export interface GithubIndexPayload extends PayloadLlmOverrides {
   knowledgeId: string;
   repoUrl: string;
   branch?: string;
@@ -19,8 +41,14 @@ export interface GithubIndexPayload {
   orgId?: string;
 }
 
-export interface GithubPullPayload {
+export interface GithubPullPayload extends PayloadLlmOverrides {
   knowledgeId: string;
+  /**
+   * Optional org binding. OSS standalone leaves this unset and the pipeline
+   * reads `Config.OrgId` (locked to `"local"`). Downstream multi-tenant
+   * deployments stamp it from the request so worker lookups can scope by org.
+   */
+  orgId?: string;
   /**
    * Optional commit to re-index the knowledge to. Must be a 40-character hex SHA
    * and must be reachable from `origin/<knowledge.branch>`. When omitted, the
@@ -35,6 +63,33 @@ export interface GithubPullPayload {
 export interface LocalIngestPayload {
   knowledgeId: string;
   rootDir: string;
+  orgId?: string;
+}
+
+/**
+ * Payload for the BusinessContext processing job. A BusinessContext is a free-text
+ * note authored by a human against a specific indexed commit of a GitHub knowledge.
+ * The worker analyses the text into structured product/technical fields, persists
+ * it to the per-commit meta tree on disk, and projects it into Neo4j as a
+ * `:BusinessContext` node plus a `:BusinessContextVersion` snapshot keyed by
+ * `(knowledgeId, commitHash)`.
+ *
+ * `orgId` is single-tenant (`"local"`) in OSS; downstream multi-tenant deployments
+ * stamp it from the request so org-scoped keyword nodes stay isolated.
+ */
+export interface BusinessContextProcessingPayload extends PayloadLlmOverrides {
+  knowledgeId: string;
+  /** 40-char hex SHA of the commit this business context applies to. */
+  commitHash: string;
+  /** Raw, user-authored business-context text. */
+  customText: string;
+  /** Optional human-supplied description for the job-tracking record. */
+  description?: string;
+  /** Optional repo URL (carried for audit; ingestion does not re-clone). */
+  repoUrl?: string;
+  /** Optional branch (carried for audit). */
+  branch?: string;
+  /** Tenant binding. OSS standalone leaves this unset (defaults to `"local"`). */
   orgId?: string;
 }
 
@@ -54,4 +109,6 @@ export type PayloadFor<T extends JobType> = T extends JobType.GithubIndex
     ? GithubPullPayload
     : T extends JobType.LocalIngest
       ? LocalIngestPayload
-      : never;
+      : T extends JobType.BusinessContextProcessing
+        ? BusinessContextProcessingPayload
+        : never;

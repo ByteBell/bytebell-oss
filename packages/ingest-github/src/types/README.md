@@ -11,6 +11,11 @@ Domain (sub-folder of `@bb/ingest-github`).
 
 - `strategy.ts` — `IngestStrategy`, `StrategyInput`, `StrategyResult`,
   `StrategyContext`. The strategy port the orchestrator dispatches to.
+  `StrategyContext` carries `{ knowledgeId, orgId, repoId,
+llmCallContext? }`; `llmCallContext` is the optional `AskLlmOptions`
+  bag the runner builds from the job payload's LLM overrides and that
+  each phase forwards into its `askJsonLLM` / `askYesNoLLM` calls. Absent
+  in OSS standalone runs — calls fall back to `Config.OpenrouterApiKey`.
 - `pipeline.ts` — `ScannedFile`, `OversizedFile`, `ScanEntry`, `FileAnalyzer`
   port, `AnalyzedFileResult`, `PipelineDeps`, `PipelineSummary`,
   `SkipDecider` / `SkipDeciderInput` / `SkipDecision` (the unknown-extension
@@ -18,9 +23,17 @@ Domain (sub-folder of `@bb/ingest-github`).
   `SourceReader` / `ScanDeps` (the repository-read abstraction; default
   implementation in `pipeline/disk-source-reader.ts`), `ArchiveSink` /
   `ArchiveSinkInput` (an optional non-fatal sink that the open-source
-  binary never calls), and `SourceFactory` / `SourceFactoryInput` /
-  `SourceFactoryResult` (the optional injection hook surfaced through
-  `registerGithubWorkers`; see `docs/extension-points.md`).
+  binary never calls), `SourceFactory` / `SourceFactoryInput` /
+  `SourceFactoryResult` (the optional index-side injection hook surfaced
+  through `registerGithubWorkers`), and `PullFactory` / `PullFactoryInput`
+  / `PullFactoryResult` (the analogous pull-side injection hook).
+  `FileAnalyzer.analyze()`, `SkipDeciderInput`, and `ScanDeps` each accept
+  an optional `llmCallContext?: AskLlmOptions` so per-job credentials
+  flow from `StrategyContext` into every LLM call site without breaking
+  the OSS standalone (defaults to undefined → config-driven). Both
+  factories are documented in `docs/extension-points.md`. The two are
+  separate because pull additionally needs a `diff` and a resolved
+  `targetCommit`, which index doesn't.
 - `meta-paths.ts` — `MetaPaths` shape (`~/.bytebell/repos/.meta/<knowledgeId>/...`).
 - `file-analysis.ts` — `FALLBACK_LANGUAGE = "unknown"` and `emptyFileAnalysis()`
   factory. Both consumed by the LLM adapter and the big-file condenser.

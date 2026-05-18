@@ -8,10 +8,14 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "imports": {
+    "#src/*": "./src/*"
+  },
   "dependencies": {
     "@bb/config": "workspace:*",
     "@bb/errors": "workspace:*",
     "@bb/types": "workspace:*",
+    "@bb/mongo": "workspace:*",
     "neo4j-driver": "^6.0.1"
   }
 }

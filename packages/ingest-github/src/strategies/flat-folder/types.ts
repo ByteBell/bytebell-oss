@@ -1,4 +1,4 @@
-import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
+import type { CondensedFileAnalysis } from "#src/types/condensed-file-analysis.ts";
 
 export interface AnalyzedFileEntry {
   relativePath: string;

@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: AGPL-3.0-only WITH non-commercial-clause
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -57,6 +56,10 @@ export async function getCachedDecision(key: string): Promise<CachedDecision | n
     const parsed = JSON.parse(raw) as CachedDecision;
     if (typeof parsed.content !== "string" || parsed.usage === undefined) {
       return null;
+    }
+    // Tolerate older cache entries written before AskLlmUsage gained costUsd.
+    if (typeof parsed.usage.costUsd !== "number") {
+      parsed.usage.costUsd = 0;
     }
     return parsed;
   } catch {

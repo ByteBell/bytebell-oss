@@ -13,9 +13,12 @@ Domain.
 - `llm-file-analyzer.ts` — `createLlmFileAnalyzer(deps)` returns the
   `FileAnalyzer` port. Deps inject `buildSystemPrompt` and `buildUserPrompt` so
   the prompts live in `strategies/flat-folder/prompts/` (one-way tier flow
-  from strategies → adapters via DI, never via import). Also exports
-  `shapeAnalysis` (raw JSON → `FileAnalysis`, tolerates missing keys) and
-  `languageFromPath` (extension-based fallback when the LLM omits `language`).
+  from strategies → adapters via DI, never via import). The returned
+  `analyze({ relativePath, content, llmCallContext? })` forwards
+  `llmCallContext` to `askJsonLLM` so per-job LLM credential overrides
+  reach OpenRouter. Also exports `shapeAnalysis` (raw JSON →
+  `FileAnalysis`, tolerates missing keys) and `languageFromPath`
+  (extension-based fallback when the LLM omits `language`).
 - `index.ts` — barrel.
 
 ## Invariants

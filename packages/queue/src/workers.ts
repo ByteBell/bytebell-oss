@@ -40,6 +40,7 @@ function defaultConcurrencyFor(type: JobType): number {
     case JobType.GithubIndex:
     case JobType.GithubPull:
     case JobType.LocalIngest:
+    case JobType.BusinessContextProcessing:
       return getConfigValue(Config.ConcurrencyGithub);
   }
 }

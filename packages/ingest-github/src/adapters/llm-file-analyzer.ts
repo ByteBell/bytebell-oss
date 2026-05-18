@@ -1,8 +1,9 @@
-import { askJsonLLM } from "@bb/llm";
+import { askJsonLLM, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import type { FileAnalysis, FileAnalysisSection } from "@bb/mongo";
-import { FALLBACK_LANGUAGE, emptyFileAnalysis } from "src/types/file-analysis.ts";
-import type { AnalyzedFileResult, FileAnalyzer } from "src/types/pipeline.ts";
+import { FALLBACK_LANGUAGE, emptyFileAnalysis } from "#src/types/file-analysis.ts";
+import type { AnalyzedFileResult, FileAnalyzer } from "#src/types/pipeline.ts";
 
 export interface LlmFileAnalyzerDeps {
   buildSystemPrompt: () => string;
@@ -33,24 +34,45 @@ interface RawAnalysisJson {
 
 export function createLlmFileAnalyzer(deps: LlmFileAnalyzerDeps): FileAnalyzer {
   return {
-    async analyze(input: { relativePath: string; content: string }): Promise<AnalyzedFileResult> {
+    async analyze(input: {
+      relativePath: string;
+      content: string;
+      llmCallContext?: AskLlmOptions;
+    }): Promise<AnalyzedFileResult> {
       const systemPrompt = deps.buildSystemPrompt();
       const userPrompt = deps.buildUserPrompt(input);
+      const t0 = performance.now();
       let raw: RawAnalysisJson | null = null;
+      let usage: { inputTokens: number; outputTokens: number; costUsd: number } | undefined;
       try {
-        const response = await askJsonLLM<RawAnalysisJson>(systemPrompt, userPrompt);
+        const response = await askJsonLLM<RawAnalysisJson>(systemPrompt, userPrompt, input.llmCallContext ?? {});
         raw = response.result;
+        usage = {
+          inputTokens: response.usage.inputTokens,
+          outputTokens: response.usage.outputTokens,
+          costUsd: response.usage.costUsd,
+        };
         if (raw === null) {
           logger.warn(`llm-file-analyzer: ${input.relativePath} returned unparseable JSON`);
         }
       } catch (cause: unknown) {
+        if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+          // LLM is unreachable / misconfigured — bubble up so the runner can
+          // mark the knowledge FAILED with a structured reason.
+          throw cause;
+        }
         const msg = cause instanceof Error ? cause.message : String(cause);
         logger.warn(`llm-file-analyzer: ${input.relativePath} askJsonLLM failed: ${msg}`);
       }
       if (raw === null) {
-        return { language: FALLBACK_LANGUAGE, analysis: emptyFileAnalysis() };
+        return { language: FALLBACK_LANGUAGE, analysis: emptyFileAnalysis(), tokenUsage: usage };
       }
-      return shapeAnalysis(raw);
+      const shaped = shapeAnalysis(raw);
+      shaped.tokenUsage = usage;
+      logger.info(
+        `llm-file-analyzer: ✓ ${input.relativePath} (${Math.round(performance.now() - t0)}ms, lang=${shaped.language})`,
+      );
+      return shaped;
     },
   };
 }

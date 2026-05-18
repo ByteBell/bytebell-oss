@@ -10,15 +10,15 @@ import {
 } from "@bb/neo4j";
 import { deleteRawFiles } from "@bb/mongo";
 import type { GithubIndexPayload } from "@bb/types";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
-import { throwIfCancelled } from "src/pipeline/cancellation.ts";
-import type { DiffResult } from "src/pipeline/git-diff.ts";
-import { readCondensed } from "src/strategies/flat-folder/big-file/storage.ts";
-import { iterateFolderSummaries } from "src/strategies/flat-folder/folder-summary.ts";
-import { directFolderOf } from "src/strategies/flat-folder/folder-path.ts";
-import { languageFromPath } from "src/adapters/llm-file-analyzer.ts";
-import type { FolderSummary, RepoSummary, RepoSummaryEnvelope } from "src/strategies/flat-folder/types.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import type { CondensedFileAnalysis } from "#src/types/condensed-file-analysis.ts";
+import { throwIfCancelled } from "#src/pipeline/cancellation.ts";
+import type { DiffResult } from "#src/pipeline/git-diff.ts";
+import { readCondensed } from "#src/strategies/flat-folder/big-file/storage.ts";
+import { iterateFolderSummaries } from "#src/strategies/flat-folder/folder-summary.ts";
+import { directFolderOf } from "#src/strategies/flat-folder/folder-path.ts";
+import { languageFromPath } from "#src/adapters/llm-file-analyzer.ts";
+import type { FolderSummary, RepoSummary, RepoSummaryEnvelope } from "#src/strategies/flat-folder/types.ts";
 
 export interface StorePullInput {
   scope: NodeScope;

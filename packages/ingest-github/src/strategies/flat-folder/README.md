@@ -30,12 +30,49 @@ sub-phase boundary.
    flat-folder indexes, upsert `:Repo`, then every `:Folder`, then every
    `:File` with the extended analysis + Folder→File `CONTAINS` edge.
 
+## Progress events
+
+The strategy emits progress through the `ProgressContext` port defined in
+`src/progress/`. `createFlatFolderStrategy(deps)` accepts an optional
+`progressContextFactory`; absent → `nullProgressContextFactory`
+(no-op, OSS default).
+
+- **Boundary events** are split between the runner and the strategy:
+  - `phaseChanged("clone")` and `phaseChanged("scan")` are emitted by
+    `pipeline/run.ts` (the runner) before `strategy.execute` is called,
+    so the SSE stream stays alive during the network/disk-bound prelude.
+  - `phaseChanged("file_analysis")` is emitted by `index.ts` before phase 1
+  - `phaseChanged("folder_analysis")` before phase 5
+  - `phaseChanged("indexing")` before phase 6 (which feeds phase 7)
+  - `completed()` after phase 7 returns
+  - `failed(message)` from a `try/catch` wrapping the whole `execute`
+- **Intra-phase ticks** are emitted by each phase via per-phase reporters
+  created from `progressContext.reporter(...)`. Sub-phase labels:
+  - phase 1 → no sub-phase (the main file-analysis loop)
+  - phase 2 → `big_files_queue`; inner `processBigFile` adds
+    `big_file:<relativePath>` for chunk pulses
+  - phase 3 → `backfill`; phase 4 → `backfill:big_files`
+  - phase 5 → no sub-phase, fixed total = directly-grouped folder count
+  - phase 7 → `folders` then `files`, both `growing` (drained from
+    on-disk async generators)
+- **Total mode**: phase 1, phase 3, and any other streaming-iterator loop
+  use `total: { kind: "growing" }` (denominator grows as `source.scan`
+  yields). Phases 2 and 4, plus the big-file chunk pool, know their size
+  up front and use `total: { kind: "fixed", total: N }`.
+- The cancellation path in `execute` lets `CancellationError` propagate
+  past the orchestrator; `failed()` only fires for non-cancellation
+  errors.
+
 ## Files
 
 - `index.ts` — `createFlatFolderStrategy(deps)` orchestrates the 7 phases.
+  Accepts `{ fileAnalyzer, progressContextFactory? }`. Constructs one
+  `ProgressContext` per job and threads it into every phase that takes a
+  `progressContext?` field.
 - `types.ts` — `AnalyzedFileEntry`, `FolderSummary`, `RepoSummary`,
   `RepoSummaryEnvelope`, `FlatFolderResult`.
-- `analyse-file.ts` — `analyseScannedFile(analyzer, file)` + `buildOversizedStub`.
+- `analyse-file.ts` — `analyseScannedFile(analyzer, file, llmCallContext?)` + `buildOversizedStub`.
+- `analyse-changed.ts` — `analyseChangedFiles({knowledgeId, source, metaPaths, analyzer, diff, llmCallContext?, archiveSink?, progressContext?})`. Pull-time per-file dispatcher. Reads changed file content through `input.source` (a `SourceReader`) so it works with both the disk-backed reader (OSS default) and any HTTP-backed alternative supplied via the `pullFactory` hook. Mirrors `classifyAndAnalyseSmall`'s small-file path: filter → fetch → size cap → binary detect → line count → analyse → save + archive push. Does NOT invoke the skip-decision LLM gate. When `progressContext` is present it creates a fixed-total reporter (`subPhase: "pull"`, `total = dedupedPaths.length`) and increments per-path so the pull SSE stream stays live.
 - `folder-path.ts` — `directFolderOf`, `affectedFolderPaths`.
 - `folder-summary.ts` — group + summarise + persist + iterate folder summaries.
 - `repo-summary.ts` — single-shot or batched repo summary with envelope writer.
@@ -66,3 +103,14 @@ sub-phase boundary.
   after `saveCondensed`; failures inside the sink are logged WARN and do
   not interrupt the analyse loop. The open-source binary never wires a
   sink — `archiveSink` is undefined and the call is skipped entirely.
+- **Per-job LLM credentials thread through every phase.** The orchestrator
+  reads `context.llmCallContext` (an optional `AskLlmOptions` built by
+  the runner from `GithubIndexPayload.{llmApiKey, llmProvider, llmModel}`)
+  and forwards it into every phase that issues LLM calls: phase 1 via
+  `classifyAndAnalyseSmall`'s `llmCallContext`, phase 2 via
+  `processBigFilesQueue`, phase 3 via `backfillMissingFields`, phase 4 via
+  `backfillBigFiles`, phase 5 via `runFolderSummaryPhase`, phase 6 via
+  `summariseRepo`. The phases pass the same option object through to
+  `askJsonLLM` so per-org overrides reach `@bb/llm` unchanged. OSS
+  standalone leaves `llmCallContext` undefined and falls back to
+  `Config.OpenrouterApiKey` + `Config.LlmProvider`.

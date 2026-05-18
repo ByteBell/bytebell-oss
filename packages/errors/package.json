@@ -8,6 +8,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "imports": {
+    "#src/*": "./src/*"
+  },
   "dependencies": {
     "@bb/types": "workspace:*"
   }

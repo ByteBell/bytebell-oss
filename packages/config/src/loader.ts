@@ -12,10 +12,29 @@ import { __registerCacheInvalidator, getConfigPath } from "./paths.ts";
 import { ensureBytebellHome } from "./writer.ts";
 
 let cached: BytebellConfig | null = null;
+let seeded = false;
 
 __registerCacheInvalidator(() => {
+  if (seeded) {
+    return;
+  }
   cached = null;
 });
+
+export function seedConfig(value: unknown): BytebellConfig {
+  cached = configSchema.parse(value);
+  seeded = true;
+  return cached;
+}
+
+export function __isSeeded(): boolean {
+  return seeded;
+}
+
+export function __resetSeedForTests(): void {
+  cached = null;
+  seeded = false;
+}
 
 export function loadConfig(): BytebellConfig {
   if (cached !== null) {

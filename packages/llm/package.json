@@ -8,9 +8,13 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "imports": {
+    "#src/*": "./src/*"
+  },
   "dependencies": {
     "@bb/config": "workspace:*",
     "@bb/errors": "workspace:*",
+    "@bb/logger": "workspace:*",
     "@bb/mongo": "workspace:*",
     "@bb/types": "workspace:*",
     "tiktoken": "^1.0.22"

@@ -1,0 +1,24 @@
+{
+  "name": "@bb/ingest-business-context",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "imports": {
+    "#src/*": "./src/*"
+  },
+  "dependencies": {
+    "@bb/config": "workspace:*",
+    "@bb/errors": "workspace:*",
+    "@bb/ingest-github": "workspace:*",
+    "@bb/llm": "workspace:*",
+    "@bb/logger": "workspace:*",
+    "@bb/neo4j": "workspace:*",
+    "@bb/queue": "workspace:*",
+    "@bb/types": "workspace:*"
+  }
+}

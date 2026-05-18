@@ -1,14 +1,16 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { askJsonLLM } from "@bb/llm";
+import { askJsonLLM, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
-import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { encodeMetaPath } from "src/pipeline/paths.ts";
-import { withConcurrency } from "src/pipeline/concurrency.ts";
-import { throwIfCancelled, CancellationError } from "src/pipeline/cancellation.ts";
+import type { CondensedFileAnalysis } from "#src/types/condensed-file-analysis.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import { encodeMetaPath } from "#src/pipeline/paths.ts";
+import { withConcurrency } from "#src/pipeline/concurrency.ts";
+import { throwIfCancelled, CancellationError } from "#src/pipeline/cancellation.ts";
+import type { ProgressContext } from "#src/progress/types.ts";
 import { iterateCondensed } from "./big-file/storage.ts";
 import { directFolderOf } from "./folder-path.ts";
 import { FOLDER_ANALYSIS_SYSTEM_PROMPT, folderAnalysisUserPrompt } from "./prompts/folder-summary.ts";
@@ -39,19 +41,44 @@ interface FolderSummaryJson {
 export async function summariseFolder(
   folderPath: string,
   files: CondensedFileAnalysis[],
-): Promise<FolderSummary | null> {
+  llmCallContext?: AskLlmOptions,
+): Promise<{
+  summary: FolderSummary | null;
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
+}> {
   const userPrompt = folderAnalysisUserPrompt(folderPath, files);
   try {
-    const response = await askJsonLLM<FolderSummaryJson>(FOLDER_ANALYSIS_SYSTEM_PROMPT, userPrompt);
+    const response = await askJsonLLM<FolderSummaryJson>(
+      FOLDER_ANALYSIS_SYSTEM_PROMPT,
+      userPrompt,
+      llmCallContext ?? {},
+    );
     if (response.result === null) {
       logger.warn(`summariseFolder: ${folderPath || "<root>"} returned unparseable JSON`);
-      return null;
+      return {
+        summary: null,
+        tokenUsage: {
+          inputTokens: response.usage.inputTokens,
+          outputTokens: response.usage.outputTokens,
+          costUsd: response.usage.costUsd,
+        },
+      };
     }
-    return shapeFolderSummary(folderPath, response.result);
+    return {
+      summary: shapeFolderSummary(folderPath, response.result),
+      tokenUsage: {
+        inputTokens: response.usage.inputTokens,
+        outputTokens: response.usage.outputTokens,
+        costUsd: response.usage.costUsd,
+      },
+    };
   } catch (cause: unknown) {
+    if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+      throw cause;
+    }
     const msg = cause instanceof Error ? cause.message : String(cause);
     logger.warn(`summariseFolder: ${folderPath || "<root>"} askJsonLLM failed: ${msg}`);
-    return null;
+    return { summary: null, tokenUsage: { inputTokens: 0, outputTokens: 0, costUsd: 0 } };
   }
 }
 
@@ -86,38 +113,65 @@ export async function* iterateFolderSummaries(metaPaths: MetaPaths): AsyncGenera
 export async function runFolderSummaryPhase(
   knowledgeId: string,
   metaPaths: MetaPaths,
-): Promise<{ succeeded: number; failed: number }> {
+  llmCallContext?: AskLlmOptions,
+  progressContext?: ProgressContext,
+): Promise<{
+  succeeded: number;
+  failed: number;
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
+}> {
   const concurrentWorkers = getConfigValue(Config.ConcurrentWorkers);
   const limit = withConcurrency(concurrentWorkers);
   const groups = await groupByDirectFolder(metaPaths);
   let succeeded = 0;
   let failed = 0;
-  const tasks: Promise<void>[] = [];
-  for (const [folderPath, files] of groups.entries()) {
-    tasks.push(
-      limit(async () => {
-        try {
-          throwIfCancelled(knowledgeId);
-          const summary = await summariseFolder(folderPath, files);
-          if (summary !== null) {
-            await persistFolderSummary(metaPaths, summary);
-            succeeded += 1;
-          } else {
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalCostUsd = 0;
+  const reporter = progressContext?.reporter({
+    phase: "folder_analysis",
+    total: { kind: "fixed", total: groups.size },
+  });
+  await reporter?.start();
+  try {
+    const tasks: Promise<void>[] = [];
+    for (const [folderPath, files] of groups.entries()) {
+      tasks.push(
+        limit(async () => {
+          try {
+            throwIfCancelled(knowledgeId);
+            const { summary, tokenUsage } = await summariseFolder(folderPath, files, llmCallContext);
+            totalInputTokens += tokenUsage.inputTokens;
+            totalOutputTokens += tokenUsage.outputTokens;
+            totalCostUsd += tokenUsage.costUsd;
+            if (summary !== null) {
+              await persistFolderSummary(metaPaths, summary);
+              succeeded += 1;
+            } else {
+              failed += 1;
+            }
+          } catch (cause: unknown) {
+            if (cause instanceof CancellationError) {
+              throw cause;
+            }
             failed += 1;
+            logger.warn(`phase5: folder summary failed for ${folderPath || "<root>"}`);
+          } finally {
+            reporter?.increment(1, { fileName: folderPath || "<root>" });
           }
-        } catch (cause: unknown) {
-          if (cause instanceof CancellationError) {
-            throw cause;
-          }
-          failed += 1;
-          logger.warn(`phase5: folder summary failed for ${folderPath || "<root>"}`);
-        }
-      }),
-    );
+        }),
+      );
+    }
+    await Promise.all(tasks);
+  } finally {
+    reporter?.stop();
   }
-  await Promise.all(tasks);
   logger.info(`phase5 done: foldersSummarised=${succeeded} failed=${failed}`);
-  return { succeeded, failed };
+  return {
+    succeeded,
+    failed,
+    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
+  };
 }
 
 function shapeFolderSummary(folderPath: string, raw: FolderSummaryJson): FolderSummary {

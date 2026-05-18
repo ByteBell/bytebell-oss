@@ -1,25 +1,26 @@
-import { Config, KnowledgeState, type GithubIndexPayload, type LocalIngestPayload } from "@bb/types";
-import { getConfigValue } from "@bb/config";
-import { recordProcessingStats, setKnowledgeCommit, setKnowledgeState } from "@bb/mongo";
-import { setKnowledgeStateInGraph } from "@bb/neo4j";
-import { estimateCostFromBreakdown } from "@bb/llm";
+import {
+  KnowledgeState,
+  type GithubIndexPayload,
+  type KnowledgeFailureCategory,
+  type LocalIngestPayload,
+} from "@bb/types";
+import { markKnowledgeFailed, setKnowledgeBranch, setKnowledgeCommit, setKnowledgeState } from "@bb/mongo";
+import { setKnowledgeBranchInGraph, setKnowledgeStateInGraph } from "@bb/neo4j";
 import { IngestError } from "@bb/errors";
 import { logger } from "@bb/logger";
-import type { IngestRunnerDeps, IngestRunnerInput } from "src/types/ingest-runner.ts";
-import type { IngestStrategy } from "src/types/strategy.ts";
-import type { ArchiveSink, PipelineSummary, SourceFactory, SourceReader } from "src/types/pipeline.ts";
+import { classifyFailure } from "./failure-classifier.ts";
+import type { IngestRunnerDeps, IngestRunnerInput } from "#src/types/ingest-runner.ts";
+import type { IngestStrategy } from "#src/types/strategy.ts";
+import type { ArchiveSink, PipelineSummary, SourceFactory, SourceReader } from "#src/types/pipeline.ts";
+import type { ProgressContextFactory } from "#src/progress/types.ts";
+import { nullProgressContextFactory } from "#src/progress/NullProgressReporter.ts";
 import { ensureMetaDirs, ensureReposRoot, metaPathsFor, repoCloneDir } from "./paths.ts";
 import { readHeadCommitHash, syncRepository } from "./source.ts";
 import { resolveBranch } from "./branch.ts";
 import { CancellationError, clearCancellation, throwIfCancelled } from "./cancellation.ts";
 import { createDiskSourceReader } from "./disk-source-reader.ts";
-
-function resolveOrgId(payload: { orgId?: string }): string {
-  if (typeof payload.orgId === "string" && payload.orgId.length > 0) {
-    return payload.orgId;
-  }
-  return getConfigValue(Config.OrgId);
-}
+import { resolveOrgId, llmCallContextFromPayload } from "./context.ts";
+import { localRepoName } from "./stats.ts";
 
 export interface CreatePipelineRunnerDeps {
   reposRootDir: string;
@@ -31,16 +32,23 @@ export interface CreatePipelineRunnerDeps {
    * supplies one.
    */
   sourceFactory?: SourceFactory;
+  /**
+   * Optional progress context factory. When provided, the runner emits
+   * pre-strategy phase changes (`clone`, `scan`) so SSE clients see liveness
+   * during the network/disk-bound prelude. Defaults to a no-op.
+   */
+  progressContextFactory?: ProgressContextFactory;
 }
 
 export function createPipelineRunner(deps: CreatePipelineRunnerDeps): IngestRunnerDeps {
+  const progressContextFactory = deps.progressContextFactory ?? nullProgressContextFactory;
   return {
     reposRootDir: deps.reposRootDir,
     strategy: deps.strategy,
     run: async (input: IngestRunnerInput): Promise<PipelineSummary> => {
       const payload = input.payload;
       if (isGithubPayload(payload)) {
-        return await runGithub(deps.strategy, payload, deps.sourceFactory);
+        return await runGithub(deps.strategy, payload, deps.sourceFactory, progressContextFactory);
       }
       return await runLocal(deps.strategy, payload);
     },
@@ -51,19 +59,25 @@ async function runGithub(
   strategy: IngestStrategy,
   payload: GithubIndexPayload,
   sourceFactory: SourceFactory | undefined,
+  progressContextFactory: ProgressContextFactory,
 ): Promise<PipelineSummary> {
   const { knowledgeId } = payload;
   clearCancellation(knowledgeId);
   const startedAt = Date.now();
   await transitionState(knowledgeId, KnowledgeState.Processing);
+  const progressContext = progressContextFactory(knowledgeId);
+  let strategyStarted = false;
   try {
     throwIfCancelled(knowledgeId);
-    const branch = resolveBranch(knowledgeId, payload);
+    const branch = await resolveBranch(knowledgeId, payload, payload.gitToken);
+    await setKnowledgeBranch(knowledgeId, branch);
+    await setKnowledgeBranchInGraph(knowledgeId, branch).catch(() => undefined);
 
     let source: SourceReader;
     let archiveSink: ArchiveSink | undefined;
     let commitHash: string;
 
+    progressContext.phaseChanged("clone");
     if (sourceFactory !== undefined) {
       const factoryResult = await sourceFactory({ knowledgeId, payload, branch });
       source = factoryResult.source;
@@ -89,31 +103,45 @@ async function runGithub(
       source = createDiskSourceReader({ repoDir, commitHash });
     }
 
+    progressContext.phaseChanged("scan");
     const metaPaths = metaPathsFor(knowledgeId);
     await ensureMetaDirs(metaPaths);
 
+    const baseContext: Parameters<typeof strategy.execute>[0]["context"] = {
+      knowledgeId,
+      orgId: resolveOrgId(payload),
+      repoId: knowledgeId,
+    };
+    const llmCallContext = llmCallContextFromPayload(payload);
+    if (llmCallContext !== undefined) {
+      baseContext.llmCallContext = llmCallContext;
+    }
     const strategyInput: Parameters<typeof strategy.execute>[0] = {
       payload,
       branch,
       source,
       metaPaths,
-      context: { knowledgeId, orgId: resolveOrgId(payload), repoId: knowledgeId },
+      context: baseContext,
     };
     if (archiveSink !== undefined) {
       strategyInput.archiveSink = archiveSink;
     }
+    strategyStarted = true;
     const result = await strategy.execute(strategyInput);
 
-    await persistStats({
+    await setKnowledgeCommit(
       knowledgeId,
-      repoName: repoNameFromUrl(payload.repoUrl),
       commitHash,
-      filesAnalyzed: result.filesAnalyzed,
-      foldersSummarised: result.foldersSummarised,
-      processingTimeMs: Date.now() - startedAt,
-    });
-    await setKnowledgeCommit(knowledgeId, commitHash);
+      String(result.tokenUsage.inputTokens),
+      String(result.tokenUsage.outputTokens),
+      String(result.tokenUsage.costUsd),
+    );
     await transitionState(knowledgeId, KnowledgeState.Processed);
+
+    const totalMs = Date.now() - startedAt;
+    logger.info(
+      `pipeline/run: ✓ github_index complete (knowledgeId=${knowledgeId}, commit=${commitHash.slice(0, 12)}, files=${result.filesAnalyzed}, folders=${result.foldersSummarised}, nodes=${result.graphNodesWritten}, ${totalMs}ms)`,
+    );
 
     return {
       filesAnalyzed: result.filesAnalyzed,
@@ -121,6 +149,7 @@ async function runGithub(
       repoSummarised: result.repoSummarised,
       graphNodesWritten: result.graphNodesWritten,
       commitHash,
+      tokenUsage: result.tokenUsage,
     };
   } catch (cause: unknown) {
     if (cause instanceof CancellationError) {
@@ -128,8 +157,12 @@ async function runGithub(
       logger.info(`pipeline/run: ingestion cancelled for ${knowledgeId}`);
       throw cause;
     }
-    await transitionState(knowledgeId, KnowledgeState.Failed).catch(() => undefined);
-    throw new IngestError(knowledgeId, `github_index pipeline failed: ${describe(cause)}`, cause);
+    const { category, reason, detail } = classifyFailure(cause);
+    await persistFailure(knowledgeId, category, reason, detail);
+    if (!strategyStarted) {
+      progressContext.failed(reason, undefined, category, detail);
+    }
+    throw new IngestError(knowledgeId, `github_index pipeline failed: ${reason}`, cause);
   }
 }
 
@@ -154,14 +187,9 @@ async function runLocal(strategy: IngestStrategy, payload: LocalIngestPayload): 
     });
 
     const commitHash = `local-${startedAt}`;
-    await persistStats({
-      knowledgeId,
-      repoName: localRepoName(rootDir),
-      commitHash,
-      filesAnalyzed: result.filesAnalyzed,
-      foldersSummarised: result.foldersSummarised,
-      processingTimeMs: Date.now() - startedAt,
-    });
+    logger.info(
+      `pipeline/run: ✓ local_ingest complete (knowledgeId=${knowledgeId}, repo=${localRepoName(rootDir)}, files=${result.filesAnalyzed}, in=${result.tokenUsage.inputTokens}, out=${result.tokenUsage.outputTokens}, cost=$${result.tokenUsage.costUsd})`,
+    );
     await transitionState(knowledgeId, KnowledgeState.Processed);
     return {
       filesAnalyzed: result.filesAnalyzed,
@@ -169,14 +197,16 @@ async function runLocal(strategy: IngestStrategy, payload: LocalIngestPayload): 
       repoSummarised: result.repoSummarised,
       graphNodesWritten: result.graphNodesWritten,
       commitHash,
+      tokenUsage: result.tokenUsage,
     };
   } catch (cause: unknown) {
     if (cause instanceof CancellationError) {
       clearCancellation(knowledgeId);
       throw cause;
     }
-    await transitionState(knowledgeId, KnowledgeState.Failed).catch(() => undefined);
-    throw new IngestError(knowledgeId, `local_ingest pipeline failed: ${describe(cause)}`, cause);
+    const { category, reason, detail } = classifyFailure(cause);
+    await persistFailure(knowledgeId, category, reason, detail);
+    throw new IngestError(knowledgeId, `local_ingest pipeline failed: ${reason}`, cause);
   }
 }
 
@@ -185,57 +215,21 @@ async function transitionState(knowledgeId: string, state: KnowledgeState): Prom
   await setKnowledgeStateInGraph(knowledgeId, state).catch(() => undefined);
 }
 
-interface PersistStatsInput {
-  knowledgeId: string;
-  repoName: string;
-  commitHash: string;
-  filesAnalyzed: number;
-  foldersSummarised: number;
-  processingTimeMs: number;
-}
-
-async function persistStats(input: PersistStatsInput): Promise<void> {
-  const estimatedCost = await estimateCostFromBreakdown({});
-  await recordProcessingStats({
-    knowledgeId: input.knowledgeId,
-    repoName: input.repoName,
-    commitHash: input.commitHash,
-    modelTokens: {},
-    estimatedCost,
-    totalBatches: 1,
-    totalFiles: input.filesAnalyzed,
-    totalFolders: input.foldersSummarised,
-    filesAnalyzed: input.filesAnalyzed,
-    processingTimeMs: input.processingTimeMs,
-  });
+/**
+ * Persists the FAILED state + structured failure reason to Mongo, then
+ * mirrors the state into Neo4j on a best-effort basis. Errors from both
+ * sides are swallowed so the throw path is preserved.
+ */
+async function persistFailure(
+  knowledgeId: string,
+  category: KnowledgeFailureCategory,
+  reason: string,
+  detail?: string,
+): Promise<void> {
+  await markKnowledgeFailed(knowledgeId, reason, category, detail).catch(() => undefined);
+  await setKnowledgeStateInGraph(knowledgeId, KnowledgeState.Failed).catch(() => undefined);
 }
 
 function isGithubPayload(payload: GithubIndexPayload | LocalIngestPayload): payload is GithubIndexPayload {
   return (payload as GithubIndexPayload).repoUrl !== undefined;
-}
-
-function repoNameFromUrl(repoUrl: string): string {
-  try {
-    const segments = new URL(repoUrl).pathname
-      .split("/")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-    const repo = segments.at(-1)?.replace(/\.git$/u, "");
-    const owner = segments.at(-2);
-    if (owner !== undefined && repo !== undefined) {
-      return `${owner}/${repo}`;
-    }
-  } catch {
-    // fall through
-  }
-  return repoUrl;
-}
-
-function localRepoName(rootDir: string): string {
-  const segments = rootDir.split("/").filter((s) => s.length > 0);
-  return segments.at(-1) ?? rootDir;
-}
-
-function describe(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
 }

@@ -41,6 +41,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "incremental": true,
-    "noEmit": true
+    "noEmit": false,
+    "emitDeclarationOnly": true
   }
 }

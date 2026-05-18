@@ -2,19 +2,21 @@ import { readFile } from "node:fs/promises";
 import { logger } from "@bb/logger";
 import { ensureFlatFolderIndexes, upsertFileNode, upsertFolderNode, upsertRepoNode, type NodeScope } from "@bb/neo4j";
 import type { GithubIndexPayload } from "@bb/types";
-import type { MetaPaths } from "src/types/meta-paths.ts";
-import { throwIfCancelled } from "src/pipeline/cancellation.ts";
-import { iterateCondensed } from "src/strategies/flat-folder/big-file/storage.ts";
-import { iterateFolderSummaries } from "src/strategies/flat-folder/folder-summary.ts";
-import { directFolderOf } from "src/strategies/flat-folder/folder-path.ts";
-import { languageFromPath } from "src/adapters/llm-file-analyzer.ts";
-import type { FolderSummary, RepoSummary, RepoSummaryEnvelope } from "src/strategies/flat-folder/types.ts";
+import type { MetaPaths } from "#src/types/meta-paths.ts";
+import { throwIfCancelled } from "#src/pipeline/cancellation.ts";
+import { iterateCondensed } from "#src/strategies/flat-folder/big-file/storage.ts";
+import { iterateFolderSummaries } from "#src/strategies/flat-folder/folder-summary.ts";
+import { directFolderOf } from "#src/strategies/flat-folder/folder-path.ts";
+import { languageFromPath } from "#src/adapters/llm-file-analyzer.ts";
+import type { ProgressContext } from "#src/progress/types.ts";
+import type { FolderSummary, RepoSummary, RepoSummaryEnvelope } from "#src/strategies/flat-folder/types.ts";
 
 export interface StoreFlatAnalysisInput {
   scope: NodeScope;
   payload: GithubIndexPayload;
   branch: string;
   metaPaths: MetaPaths;
+  progressContext?: ProgressContext;
 }
 
 export interface StoreFlatAnalysisResult {
@@ -59,48 +61,72 @@ export async function storeFlatAnalysis(input: StoreFlatAnalysisInput): Promise<
     nodesWritten += 1;
   }
 
+  const folderReporter = input.progressContext?.reporter({
+    phase: "indexing",
+    subPhase: "folders",
+    total: { kind: "growing" },
+  });
+  await folderReporter?.start();
   const folderPaths = new Set<string>();
-  for await (const folder of iterateFolderSummaries(input.metaPaths)) {
-    throwIfCancelled(input.scope.knowledgeId);
-    await upsertFolderNode({
-      scope: input.scope,
-      folderPath: folder.folderPath,
-      summary: shapeFolderPayload(folder),
-    });
-    folderPaths.add(folder.folderPath);
-    foldersWritten += 1;
-    nodesWritten += 1;
-  }
-
-  for await (const file of iterateCondensed(input.metaPaths)) {
-    throwIfCancelled(input.scope.knowledgeId);
-    const folderPath = directFolderOf(file.relativePath);
-    if (!folderPaths.has(folderPath)) {
+  try {
+    for await (const folder of iterateFolderSummaries(input.metaPaths)) {
+      throwIfCancelled(input.scope.knowledgeId);
+      folderReporter?.incrementSeen();
       await upsertFolderNode({
         scope: input.scope,
-        folderPath,
-        summary: emptyFolderPayload(),
+        folderPath: folder.folderPath,
+        summary: shapeFolderPayload(folder),
       });
-      folderPaths.add(folderPath);
+      folderPaths.add(folder.folderPath);
       foldersWritten += 1;
       nodesWritten += 1;
+      folderReporter?.increment(1, { fileName: folder.folderPath || "<root>" });
     }
-    await upsertFileNode({
-      orgId: input.scope.orgId,
-      knowledgeId: input.scope.knowledgeId,
-      repoId: input.scope.repoId,
-      relativePath: file.relativePath,
-      folderPath,
-      language: file.language.length > 0 ? file.language : languageFromPath(file.relativePath),
-      sha: file.sha256,
-      sizeBytes: file.sizeBytes,
-      analysis: file.analysis,
-      isBigFile: file.isBigFile,
-      totalChunks: file.totalChunks,
-      totalTokenCount: file.totalTokenCount,
-    });
-    filesWritten += 1;
-    nodesWritten += 1;
+  } finally {
+    folderReporter?.stop();
+  }
+
+  const fileReporter = input.progressContext?.reporter({
+    phase: "indexing",
+    subPhase: "files",
+    total: { kind: "growing" },
+  });
+  await fileReporter?.start();
+  try {
+    for await (const file of iterateCondensed(input.metaPaths)) {
+      throwIfCancelled(input.scope.knowledgeId);
+      fileReporter?.incrementSeen();
+      const folderPath = directFolderOf(file.relativePath);
+      if (!folderPaths.has(folderPath)) {
+        await upsertFolderNode({
+          scope: input.scope,
+          folderPath,
+          summary: emptyFolderPayload(),
+        });
+        folderPaths.add(folderPath);
+        foldersWritten += 1;
+        nodesWritten += 1;
+      }
+      await upsertFileNode({
+        orgId: input.scope.orgId,
+        knowledgeId: input.scope.knowledgeId,
+        repoId: input.scope.repoId,
+        relativePath: file.relativePath,
+        folderPath,
+        language: file.language.length > 0 ? file.language : languageFromPath(file.relativePath),
+        sha: file.sha256,
+        sizeBytes: file.sizeBytes,
+        analysis: file.analysis,
+        isBigFile: file.isBigFile,
+        totalChunks: file.totalChunks,
+        totalTokenCount: file.totalTokenCount,
+      });
+      filesWritten += 1;
+      nodesWritten += 1;
+      fileReporter?.increment(1, { fileName: file.relativePath });
+    }
+  } finally {
+    fileReporter?.stop();
   }
 
   logger.info(`phase7 done: nodesWritten=${nodesWritten} folders=${foldersWritten} files=${filesWritten}`);

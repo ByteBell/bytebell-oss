@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { KnowledgeDoc, KnowledgeSource, KnowledgeState } from "@bb/types";
+import type { KnowledgeDoc, KnowledgeState } from "@bb/types";
 import { _runCypher } from "./client.ts";
 
 const UPSERT_KNOWLEDGE = `
@@ -16,6 +16,11 @@ SET k.sourceKind = $sourceKind,
 const SET_STATE = `
 MATCH (k:Knowledge {knowledgeId: $knowledgeId})
 SET k.state = $state, k.updatedAt = $updatedAt
+`;
+
+const SET_BRANCH = `
+MATCH (k:Knowledge {knowledgeId: $knowledgeId})
+SET k.branch = $branch, k.updatedAt = $updatedAt
 `;
 
 const DELETE_FILES_BY_KNOWLEDGE = `
@@ -52,14 +57,14 @@ DELETE n
 
 export async function upsertKnowledgeNode(doc: KnowledgeDoc): Promise<void> {
   const sourceKind = doc.source.kind;
-  const sourceUrl = doc.source.kind === "github" ? doc.source.repoUrl : doc.source.sourcePath;
-  const branch = doc.source.kind === "github" ? (doc.source.branch ?? null) : null;
+  const sourceUrl = doc.source.kind === "github" ? (doc.info.repoUrl ?? "") : doc.source.sourcePath;
+  const branch = doc.source.kind === "github" ? (doc.info.branch ?? null) : null;
   await _runCypher(UPSERT_KNOWLEDGE, {
     knowledgeId: doc.knowledgeId,
     sourceKind,
     sourceUrl,
     branch,
-    repoName: deriveRepoName(doc.source),
+    repoName: deriveRepoName(doc),
     state: doc.status.state,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
@@ -74,6 +79,14 @@ export async function setKnowledgeStateInGraph(knowledgeId: string, state: Knowl
   });
 }
 
+export async function setKnowledgeBranchInGraph(knowledgeId: string, branch: string): Promise<void> {
+  await _runCypher(SET_BRANCH, {
+    knowledgeId,
+    branch,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 export async function deleteKnowledgeGraph(knowledgeId: string): Promise<void> {
   await _runCypher(DELETE_FILES_BY_KNOWLEDGE, { knowledgeId });
   await _runCypher(DELETE_ORPHAN_FILES);
@@ -81,11 +94,11 @@ export async function deleteKnowledgeGraph(knowledgeId: string): Promise<void> {
   await _runCypher(DELETE_ORPHAN_ENTITIES);
 }
 
-function deriveRepoName(source: KnowledgeSource): string {
-  if (source.kind === "local") {
-    return path.basename(source.sourcePath);
+function deriveRepoName(doc: KnowledgeDoc): string {
+  if (doc.source.kind === "local") {
+    return path.basename(doc.source.sourcePath);
   }
-  return repoNameFromGithubUrl(source.repoUrl);
+  return repoNameFromGithubUrl(doc.info.repoUrl ?? "");
 }
 
 function repoNameFromGithubUrl(repoUrl: string): string {

@@ -51,7 +51,8 @@ infra/docker/docker-compose.yml up -d`, polls
   prefer `bytebell boot`.
 - `bytebell index <git-url>` / `bytebell ingest [path]` / `bytebell ls`
   — talk HTTP to a running server (lazy-spawn via
-  `serverSpawn.ensureServerRunning` when the daemon is down).
+  `serverSpawn.ensureServerRunning` when the daemon is down). `ls` supports
+  an interactive mode (`-i`) for hierarchical browsing of repos and commits.
 - `bytebell delete` — list indexed knowledge in an Ink arrow-key picker
   (`DeleteSelector.tsx`, plain `useInput` — no extra dep), and on
   confirm `DELETE /api/v1/repos/:id` against the running server. The
@@ -151,7 +152,7 @@ will touch when implemented. Only the **bolded** entries ship in v0.
 | **`bytebell server start`**                      | **Spawn `bytebell-server` in foreground.**                                                                           | **Shipped**                                 |
 | **`bytebell index <git-url>`**                   | **POST `/api/v1/github/index` to local server.**                                                                     | **Shipped**                                 |
 | **`bytebell ingest [path]`**                     | **POST `/api/v1/local/index` for a directory tree.**                                                                 | **Shipped**                                 |
-| **`bytebell ls`**                                | **Render `/api/v1/repos` as a table.**                                                                               | **Shipped**                                 |
+| **`bytebell ls`**                                | **Render `/api/v1/repos` as a table or interactive explorer (`-i`). v0.**                                            | **Shipped**                                 |
 | **`bytebell delete`**                            | **Ink picker over `/api/v1/repos`, then DELETE `/api/v1/repos/:id` (Mongo + Neo4j + jobs).**                         | **Shipped**                                 |
 | **`bytebell stats`**                             | **Render `/api/v1/stats` (totals + per-repo + per-commit token / cost rows).**                                       | **Shipped**                                 |
 | `bytebell`                                       | Ink dashboard with Repos / Server / Activity / Cost panes ([docs/arch.md:172-184](../../docs/arch.md#L172-L184))     | After `@bb/server` HTTP API + activity feed |

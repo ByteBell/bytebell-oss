@@ -40,8 +40,30 @@ function getBytebellHome(): string
 function getConfigPath(): string
 function ensureBytebellHome(): void
 
+function seedConfig(value: unknown): BytebellConfig
+function __isSeeded(): boolean
+class ConfigSeededError extends Error
+
+function setBytebellHomeResolver(fn: (() => string | null) | null): void
+
+function __resetSeedForTests(): void                            // test-only
 function __setBytebellHomeForTests(home: string | null): void  // test-only
 ```
+
+`setBytebellHomeResolver` registers an override function invoked on every
+`getBytebellHome()` call (no caching). The resolver returns the home directory
+to use for the current invocation, or `null` to fall through to the
+`~/.bytebell` default. Pass `null` to clear.
+
+`seedConfig` injects a pre-parsed config object into the in-memory cache,
+validated through `configSchema.parse`. When seeded, `loadConfig()` returns
+the seeded values and **does not** call `ensureBytebellHome()` or read
+`config.json`. The cache invalidator is also no-op while seeded, so the seed
+survives unexpected `__notifyConfigChanged` events. `setConfigValue` throws
+`ConfigSeededError` when invoked against a seeded cache — writes are disabled
+in that mode. When `seedConfig` is never called, behaviour is bit-for-bit the
+disk-backed path: `loadConfig()` materializes `~/.bytebell/config.json` on
+first read and `setConfigValue` performs atomic writes.
 
 The `Config` enum lives in `@bb/types`; `ConfigIncompleteError` lives in
 `@bb/errors`. Both are imported from those packages directly, not from
@@ -74,8 +96,9 @@ This package does **not** own:
 
 1. **No env var reads.** Source files contain no `process.env` references.
    Enforced at lint time ([eslint.config.mjs:71-94](../../eslint.config.mjs#L71-L94)).
-2. **No `.env` / `dotenv` / `BYTEBELL_HOME`.** The only test seam is the
-   programmatic `__setBytebellHomeForTests`.
+2. **No `.env` / `dotenv` / `BYTEBELL_HOME`.** Programmatic override seams
+   are `__setBytebellHomeForTests` (test-only, static) and
+   `setBytebellHomeResolver` (per-call function).
 3. **Strict schema.** Unknown keys in `config.json` cause `loadConfig()` to
    throw — typo defense.
 4. **Defaults always present.** `loadConfig()` never returns a partial config;

@@ -1,13 +1,21 @@
 import { createHash } from "node:crypto";
-import { tokenLen } from "@bb/llm";
-import type { CondensedFileAnalysis } from "src/types/condensed-file-analysis.ts";
-import type { FileAnalyzer, ScannedFile } from "src/types/pipeline.ts";
+import { tokenLen, type AskLlmOptions } from "@bb/llm";
+import type { CondensedFileAnalysis } from "#src/types/condensed-file-analysis.ts";
+import type { FileAnalyzer, ScannedFile } from "#src/types/pipeline.ts";
 
-export async function analyseScannedFile(analyzer: FileAnalyzer, file: ScannedFile): Promise<CondensedFileAnalysis> {
-  const { language, analysis } = await analyzer.analyze({
+export async function analyseScannedFile(
+  analyzer: FileAnalyzer,
+  file: ScannedFile,
+  llmCallContext?: AskLlmOptions,
+): Promise<CondensedFileAnalysis> {
+  const analyzerInput: Parameters<typeof analyzer.analyze>[0] = {
     relativePath: file.relativePath,
     content: file.content,
-  });
+  };
+  if (llmCallContext !== undefined) {
+    analyzerInput.llmCallContext = llmCallContext;
+  }
+  const { language, analysis, tokenUsage } = await analyzer.analyze(analyzerInput);
   return {
     relativePath: file.relativePath,
     language,
@@ -19,6 +27,7 @@ export async function analyseScannedFile(analyzer: FileAnalyzer, file: ScannedFi
     totalTokenCount: 0,
     analysedAt: new Date().toISOString(),
     analysis,
+    tokenUsage,
   };
 }
 

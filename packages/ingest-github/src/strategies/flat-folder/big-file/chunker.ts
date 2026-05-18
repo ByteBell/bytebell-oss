@@ -1,5 +1,5 @@
 import { tokenLen } from "@bb/llm";
-import type { FileChunk } from "src/types/big-file.ts";
+import type { FileChunk } from "#src/types/big-file.ts";
 
 export function splitFileIntoChunks(relativePath: string, content: string, maxTokensPerChunk: number): FileChunk[] {
   const lines = content.split("\n");

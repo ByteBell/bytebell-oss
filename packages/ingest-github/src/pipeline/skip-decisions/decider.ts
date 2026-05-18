@@ -2,9 +2,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
-import { askYesNoLLM } from "@bb/llm";
+import { askYesNoLLM, type AskLlmOptions } from "@bb/llm";
 import { logger } from "@bb/logger";
-import type { SkipDecider, SkipDeciderInput, SkipDecision } from "src/types/pipeline.ts";
+import type { SkipDecider, SkipDeciderInput, SkipDecision } from "#src/types/pipeline.ts";
 import {
   defaultCachePath,
   emptyCache,
@@ -71,7 +71,7 @@ export function makeSkipDecider(deps: SkipDeciderDeps = {}): SkipDecider {
         return cached.ignore ? "reject-llm" : "accept-llm";
       }
 
-      const decision = await askLlmDecision(input, deps.repositoryName);
+      const decision = await askLlmDecision(input, deps.repositoryName, input.llmCallContext);
       if (input.ext.length > 0) {
         setExtensionDecision(cache, input.ext, !decision, "llm", deps.repositoryName, input.relativePath);
       } else {
@@ -88,7 +88,11 @@ export function makeSkipDecider(deps: SkipDeciderDeps = {}): SkipDecider {
   };
 }
 
-async function askLlmDecision(input: SkipDeciderInput, repositoryName: string | undefined): Promise<boolean> {
+async function askLlmDecision(
+  input: SkipDeciderInput,
+  repositoryName: string | undefined,
+  llmCallContext: AskLlmOptions | undefined,
+): Promise<boolean> {
   const maxChars = getConfigValue(Config.SkipDecisionMaxCharsForLlm);
   let content: string;
   if (input.content !== undefined) {
@@ -115,6 +119,7 @@ async function askLlmDecision(input: SkipDeciderInput, repositoryName: string | 
       content,
       truncatedTo: content.length,
     }),
+    llmCallContext ?? {},
   );
   if (result.decision === null) {
     logger.warn(`skip-decisions: LLM returned no decision for ${input.relativePath}; defaulting to reject`);
