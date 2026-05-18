@@ -4,5 +4,12 @@
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../config" },
+    { "path": "../logger" },
+    { "path": "../llm" },
+    { "path": "../neo4j" },
+    { "path": "../types" }
+  ]
 }

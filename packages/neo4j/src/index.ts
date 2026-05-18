@@ -5,7 +5,12 @@ export type { PingResult } from "./client.ts";
 export { ensureKnowledgeIndexes } from "./indexes.ts";
 export { ensureFlatFolderIndexes } from "./flatFolderIndexes.ts";
 
-export { upsertKnowledgeNode, setKnowledgeStateInGraph, deleteKnowledgeGraph } from "./knowledge.ts";
+export {
+  upsertKnowledgeNode,
+  setKnowledgeStateInGraph,
+  setKnowledgeBranchInGraph,
+  deleteKnowledgeGraph,
+} from "./knowledge.ts";
 
 export { upsertFileNode, deleteFileNodes } from "./files.ts";
 export type { UpsertFileNodeInput } from "./files.ts";

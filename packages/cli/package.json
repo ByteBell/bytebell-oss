@@ -14,6 +14,7 @@
   "dependencies": {
     "@bb/config": "workspace:*",
     "@bb/errors": "workspace:*",
+    "@bb/ingest-github": "workspace:*",
     "@bb/logger": "workspace:*",
     "@bb/types": "workspace:*",
     "commander": "^14.0.3",

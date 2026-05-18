@@ -5,6 +5,7 @@ export {
   getKnowledge,
   setKnowledgeCommit,
   setKnowledgeState,
+  setKnowledgeBranch,
   updateKnowledgeProgress,
   upsertKnowledge,
   listKnowledge,

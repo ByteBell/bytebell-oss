@@ -4,5 +4,6 @@
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "references": [{ "path": "../config" }, { "path": "../errors" }, { "path": "../mongo" }, { "path": "../types" }]
 }

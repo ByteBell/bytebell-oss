@@ -62,7 +62,14 @@ export function buildGithubCommitsRoute(): Router {
     const result = await fetchRecentCommits(repoUrl, branch, limit, gitToken);
     switch (result.status) {
       case "ok": {
-        const payload: CommitsResponse = { knowledgeId, branch, commits: result.commits };
+        const commits = result.commits.map((c) => ({
+          hash: c.sha,
+          shortHash: c.sha.slice(0, 7),
+          subject: c.message.split("\n")[0] ?? "",
+          author: c.author,
+          date: c.timestamp,
+        }));
+        const payload: CommitsResponse = { knowledgeId, branch, commits };
         res.status(200).json(payload);
         return;
       }

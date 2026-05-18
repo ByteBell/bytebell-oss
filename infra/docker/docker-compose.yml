@@ -4,7 +4,7 @@ services:
     container_name: bytebell-mongo
     restart: unless-stopped
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:27117:27017"
     volumes:
       - mongo_data:/data/db
     environment:
@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:7474:7474"
-      - "127.0.0.1:7687:7687"
+      - "127.0.0.1:7787:7687"
     volumes:
       - neo4j_data:/data
     environment:
@@ -47,7 +47,7 @@ services:
     container_name: bytebell-redis
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:6479:6379"
     volumes:
       - redis_data:/data
     command: ["redis-server", "--appendonly", "yes"]

@@ -1,4 +1,5 @@
-import { Queue, Worker } from "bullmq";
+import type { Worker } from "bullmq";
+import { Queue } from "bullmq";
 import { JobType } from "@bb/types";
 import { QueueConnectError, QueueNotConnectedError } from "@bb/errors";
 import { getRedisConnection } from "@bb/redis";

@@ -3,8 +3,11 @@ import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
 import { ensureServerRunning, ServerStartTimeoutError } from "./serverSpawn.ts";
 import { getJson, HttpClientError, postJson } from "./httpClient.ts";
-import { createProgressBar, createSpinner, error, type ProgressBar } from "./output.ts";
+import { createProgressBar, createSpinner, error, info, list, type ProgressBar } from "./output.ts";
 import { startLogTailer, type LogTailer } from "./logTailer.ts";
+import { promptForToken } from "./pullPrompts.ts";
+import { promptInitialBranch, promptFullBranchSelector } from "./branchPrompts.ts";
+import { parseGithubRepo } from "@bb/ingest-github";
 
 interface IndexResponse {
   knowledgeId: string;
@@ -52,12 +55,16 @@ async function runIndex(
     if (options.verbose === true) {
       tailer = await startLogTailer("server");
     }
-    const body: Record<string, string> = { repoUrl: gitUrl };
-    if (options.branch !== undefined) {
-      body["branch"] = options.branch;
+
+    const { branch: resolvedBranch, token: activeToken } = await probeRepo(gitUrl, options.branch, options.token);
+    if (resolvedBranch === null) {
+      // User cancelled during token prompt
+      return;
     }
-    if (options.token !== undefined) {
-      body["gitToken"] = options.token;
+
+    const body: Record<string, string> = { repoUrl: gitUrl, branch: resolvedBranch };
+    if (activeToken !== undefined) {
+      body["gitToken"] = activeToken;
     }
     const response = await postJson<IndexResponse>("/api/v1/github/index", body);
     await pollJobStatus(response.knowledgeId, response.jobId);
@@ -124,6 +131,104 @@ async function pollJobStatus(knowledgeId: string, jobId: string): Promise<void> 
     }
     await new Promise((resolve) => setTimeout(resolve, pollInterval));
   }
+}
+
+interface ProbeResponse {
+  status: "ok" | "not_found" | "unauthorized" | "rate_limited" | "error" | "branch_not_found";
+  defaultBranch?: string;
+  branches?: string[];
+  message?: string;
+}
+
+async function probeRepo(
+  gitUrl: string,
+  suppliedBranch?: string,
+  suppliedToken?: string,
+): Promise<{ branch: string | null; token?: string }> {
+  let token = suppliedToken;
+  const parsed = parseGithubRepo(gitUrl);
+  const repoLabel = parsed ? `${parsed.owner}/${parsed.repo}` : gitUrl;
+
+  // 1. Initial probe to find default branch and check access
+  const callProbe = async (t?: string) => {
+    try {
+      return await postJson<ProbeResponse>("/api/v1/github/probe", { repoUrl: gitUrl, gitToken: t });
+    } catch (cause) {
+      if (cause instanceof HttpClientError && (cause.status === 401 || cause.status === 404)) {
+        return (cause.body as ProbeResponse) || { status: cause.status === 404 ? "not_found" : "unauthorized" };
+      }
+      throw cause;
+    }
+  };
+
+  let probe = await callProbe(token);
+
+  // 2. Handle private repo if needed
+  if (probe.status === "not_found" || probe.status === "unauthorized") {
+    const promptMessage =
+      probe.status === "unauthorized"
+        ? "The previous token was rejected. Try a different PAT."
+        : "This repo looks private. Paste a GitHub PAT with `repo` scope.";
+    const tokenResult = await promptForToken(repoLabel, promptMessage);
+    if (tokenResult === null) {
+      info("Cancelled.");
+      return { branch: null };
+    }
+    token = tokenResult;
+    probe = await callProbe(token);
+  }
+
+  if (probe.status !== "ok") {
+    error(probe.message ?? "Failed to probe repository.");
+    return { branch: null };
+  }
+
+  // 3. If a branch was already supplied (via flag or URL), just verify it
+  const branchFromUrl = parsed?.branch;
+  const initialBranch = suppliedBranch ?? branchFromUrl;
+  if (initialBranch !== undefined) {
+    if (probe.branches && !probe.branches.includes(initialBranch)) {
+      error(`Branch '${initialBranch}' not found.`);
+      if (probe.branches.length > 0) {
+        list("Available branches:", probe.branches.slice(0, 20));
+      }
+      return { branch: null };
+    }
+    const res: { branch: string | null; token?: string } = { branch: initialBranch };
+    if (token) {
+      res.token = token;
+    }
+    return res;
+  }
+
+  // 4. Interactive menu flow
+  const defaultBranch = probe.defaultBranch ?? "main";
+  const choice = await promptInitialBranch(defaultBranch);
+  if (choice === null) {
+    info("Cancelled.");
+    return { branch: null };
+  }
+
+  if (choice === "default") {
+    const res: { branch: string | null; token?: string } = { branch: defaultBranch };
+    if (token) {
+      res.token = token;
+    }
+    return res;
+  }
+
+  // User selected "Other branch..."
+  const fullSelection = await promptFullBranchSelector(probe.branches ?? []);
+  if (fullSelection === null) {
+    info("Cancelled.");
+    return { branch: null };
+  }
+
+  const res: { branch: string | null; token?: string } = { branch: fullSelection.branch };
+  if (token) {
+    res.token = token;
+  }
+  return res;
 }
 
 function handleError(cause: unknown): void {

@@ -11,5 +11,15 @@
     "noEmit": false,
     "emitDeclarationOnly": true
   },
-  "include": ["src/**/*", "src/**/*.json"]
+  "include": ["src/**/*", "src/**/*.json"],
+  "references": [
+    { "path": "../config" },
+    { "path": "../errors" },
+    { "path": "../llm" },
+    { "path": "../logger" },
+    { "path": "../mongo" },
+    { "path": "../neo4j" },
+    { "path": "../queue" },
+    { "path": "../types" }
+  ]
 }

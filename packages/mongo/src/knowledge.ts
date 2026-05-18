@@ -1,4 +1,4 @@
-import { KnowledgeState, type KnowledgeDoc } from "@bb/types";
+import type { KnowledgeDoc, KnowledgeState } from "@bb/types";
 import { KnowledgeNotFoundError } from "@bb/errors";
 import { _getDb } from "./client.ts";
 import { Collections } from "./collections.ts";
@@ -36,6 +36,18 @@ export async function setKnowledgeCommit(knowledgeId: string, commitHash: string
         $addToSet: { "source.commitHashes": commitHash },
       },
     );
+  if (result.matchedCount === 0) {
+    throw new KnowledgeNotFoundError(knowledgeId);
+  }
+}
+
+/**
+ * Updates the branch name of a GitHub knowledge entry.
+ */
+export async function setKnowledgeBranch(knowledgeId: string, branch: string): Promise<void> {
+  const result = await _getDb()
+    .collection(Collections.Knowledge)
+    .updateOne({ knowledgeId }, { $set: { "source.branch": branch, updatedAt: new Date() } });
   if (result.matchedCount === 0) {
     throw new KnowledgeNotFoundError(knowledgeId);
   }

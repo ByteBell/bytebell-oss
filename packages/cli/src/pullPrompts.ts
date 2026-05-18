@@ -63,7 +63,7 @@ export async function resolveCommit(
   return null;
 }
 
-async function promptForToken(repoLabel: string, message: string): Promise<string | null> {
+export async function promptForToken(repoLabel: string, message: string): Promise<string | null> {
   return new Promise<string | null>((resolve) => {
     const onDone = (result: TokenPromptResult): void => {
       if (result.token !== undefined && result.token.length > 0) {

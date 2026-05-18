@@ -45,9 +45,24 @@ export declare const createGithubIngestHandler: (...args: any[]) => any;
 export declare const createLocalIngestHandler: (...args: any[]) => any;
 export declare const runPull: (...args: any[]) => any;
 export declare const reposRoot: (...args: any[]) => string;
-export declare const fetchLatestCommitHash: (...args: any[]) => any;
-export declare const fetchRecentCommits: (...args: any[]) => any;
-export declare const parseGithubRepo: (...args: any[]) => any;
+export declare function fetchLatestCommitHash(
+  repoUrl: string,
+  branch: string,
+  gitToken?: string,
+): Promise<string | null>;
+export declare function fetchRecentCommits(
+  repoUrl: string,
+  branch: string,
+  limit?: number,
+  gitToken?: string,
+): Promise<FetchCommitsResult>;
+export declare function fetchDefaultBranch(repoUrl: string, gitToken?: string): Promise<DefaultBranchResult>;
+export declare function fetchBranches(
+  repoUrl: string,
+  gitToken?: string,
+  limit?: number,
+): Promise<{ status: "ok"; branches: string[] } | { status: "error"; message: string }>;
+export declare function parseGithubRepo(repoUrl: string): ParsedRepo | null;
 
 export interface BootstrapRuntimeOptions {
   config: unknown;
@@ -84,6 +99,29 @@ export type PullFactoryResult = any;
 export type DiffResult = any;
 export type RenamedFile = any;
 export type CondensedFileAnalysis = any;
-export type CommitEntry = any;
-export type FetchCommitsResult = any;
-export type ParsedRepo = any;
+export interface CommitEntry {
+  sha: string;
+  message: string;
+  author: string;
+  timestamp: string;
+}
+
+export type FetchCommitsResult =
+  | { status: "ok"; commits: CommitEntry[] }
+  | { status: "not_found" }
+  | { status: "unauthorized" }
+  | { status: "rate_limited" }
+  | { status: "error"; message: string };
+
+export interface ParsedRepo {
+  owner: string;
+  repo: string;
+  branch?: string;
+}
+
+export type DefaultBranchResult =
+  | { status: "ok"; branch: string }
+  | { status: "not_found" }
+  | { status: "unauthorized" }
+  | { status: "rate_limited" }
+  | { status: "error"; message: string };

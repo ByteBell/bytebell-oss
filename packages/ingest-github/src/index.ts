@@ -89,8 +89,14 @@ export type {
 } from "./types/pipeline.ts";
 export type { DiffResult, RenamedFile } from "./pipeline/git-diff.ts";
 export type { CondensedFileAnalysis } from "./types/condensed-file-analysis.ts";
-export { fetchLatestCommitHash, fetchRecentCommits, parseGithubRepo } from "./githubApi.ts";
-export type { CommitEntry, FetchCommitsResult, ParsedRepo } from "./githubApi.ts";
+export {
+  fetchLatestCommitHash,
+  fetchRecentCommits,
+  fetchDefaultBranch,
+  fetchBranches,
+  parseGithubRepo,
+} from "./githubApi.ts";
+export type { CommitEntry, FetchCommitsResult, ParsedRepo, DefaultBranchResult } from "./githubApi.ts";
 export { bootstrapRuntime } from "./bootstrap.ts";
 export type { BootstrapRuntimeOptions } from "./bootstrap.ts";
 export {

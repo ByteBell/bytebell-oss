@@ -18,6 +18,11 @@ MATCH (k:Knowledge {knowledgeId: $knowledgeId})
 SET k.state = $state, k.updatedAt = $updatedAt
 `;
 
+const SET_BRANCH = `
+MATCH (k:Knowledge {knowledgeId: $knowledgeId})
+SET k.branch = $branch, k.updatedAt = $updatedAt
+`;
+
 const DELETE_FILES_BY_KNOWLEDGE = `
 MATCH (f:File {knowledgeId: $knowledgeId})
 DETACH DELETE f
@@ -70,6 +75,14 @@ export async function setKnowledgeStateInGraph(knowledgeId: string, state: Knowl
   await _runCypher(SET_STATE, {
     knowledgeId,
     state,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function setKnowledgeBranchInGraph(knowledgeId: string, branch: string): Promise<void> {
+  await _runCypher(SET_BRANCH, {
+    knowledgeId,
+    branch,
     updatedAt: new Date().toISOString(),
   });
 }

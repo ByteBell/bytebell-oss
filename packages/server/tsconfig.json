@@ -5,5 +5,15 @@
     "outDir": "./dist"
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../ingest-github" }]
+  "references": [
+    { "path": "../config" },
+    { "path": "../errors" },
+    { "path": "../ingest-github" },
+    { "path": "../mcp" },
+    { "path": "../mongo" },
+    { "path": "../neo4j" },
+    { "path": "../queue" },
+    { "path": "../redis" },
+    { "path": "../types" }
+  ]
 }
