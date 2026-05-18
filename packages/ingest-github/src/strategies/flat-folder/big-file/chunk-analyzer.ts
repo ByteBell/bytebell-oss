@@ -1,4 +1,5 @@
 import { askJsonLLM, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import type { ChunkAnalysisResult, FileChunk } from "#src/types/big-file.ts";
 import { FALLBACK_LANGUAGE, emptyFileAnalysis } from "#src/types/file-analysis.ts";
@@ -32,9 +33,16 @@ export async function analyzeChunk(chunk: FileChunk, llmCallContext?: AskLlmOpti
       endLine: chunk.endLine,
       language,
       analysis,
-      tokenUsage: { inputTokens: response.usage.inputTokens, outputTokens: response.usage.outputTokens },
+      tokenUsage: {
+        inputTokens: response.usage.inputTokens,
+        outputTokens: response.usage.outputTokens,
+        costUsd: response.usage.costUsd,
+      },
     };
   } catch (cause: unknown) {
+    if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+      throw cause;
+    }
     const msg = cause instanceof Error ? cause.message : String(cause);
     logger.warn(
       `analyzeChunk: ${chunk.relativePath} chunk ${chunk.chunkIndex + 1}/${chunk.totalChunks} askJsonLLM failed: ${msg}`,

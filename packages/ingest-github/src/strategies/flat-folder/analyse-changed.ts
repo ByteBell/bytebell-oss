@@ -1,5 +1,6 @@
 import path from "node:path";
 import { tokenLen, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
@@ -33,7 +34,7 @@ export interface AnalyseChangedResult {
   oversizedStubs: number;
   skipped: number;
   failed: number;
-  tokenUsage: { inputTokens: number; outputTokens: number };
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
 }
 
 /**
@@ -80,6 +81,7 @@ export async function analyseChangedFiles(input: AnalyseChangedInput): Promise<A
   let failed = 0;
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+  let totalCostUsd = 0;
 
   const pending: Promise<void>[] = [];
 
@@ -196,10 +198,14 @@ export async function analyseChangedFiles(input: AnalyseChangedInput): Promise<A
             if (condensed.tokenUsage) {
               totalInputTokens += condensed.tokenUsage.inputTokens;
               totalOutputTokens += condensed.tokenUsage.outputTokens;
+              totalCostUsd += condensed.tokenUsage.costUsd;
             }
             smallFilesAnalysed += 1;
           } catch (cause: unknown) {
             if (cause instanceof CancellationError) {
+              throw cause;
+            }
+            if (cause instanceof LlmConfigError || cause instanceof LlmError) {
               throw cause;
             }
             failed += 1;
@@ -230,7 +236,7 @@ export async function analyseChangedFiles(input: AnalyseChangedInput): Promise<A
     oversizedStubs,
     skipped,
     failed,
-    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens },
+    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
   };
 }
 

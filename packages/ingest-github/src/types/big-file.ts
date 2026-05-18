@@ -27,7 +27,7 @@ export interface ChunkAnalysisResult {
   endLine: number;
   language: string;
   analysis: FileAnalysis;
-  tokenUsage?: { inputTokens: number; outputTokens: number } | undefined;
+  tokenUsage?: { inputTokens: number; outputTokens: number; costUsd: number } | undefined;
 }
 
 export interface HugeFileManifest {

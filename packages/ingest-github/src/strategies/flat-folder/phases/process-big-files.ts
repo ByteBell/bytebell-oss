@@ -1,5 +1,6 @@
 import { logger } from "@bb/logger";
 import type { AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import type { MetaPaths } from "#src/types/meta-paths.ts";
 import type { SourceReader } from "#src/types/pipeline.ts";
 import type { ProgressContext } from "#src/progress/types.ts";
@@ -21,7 +22,7 @@ export interface ProcessBigFilesResult {
   cached: number;
   failed: number;
   skippedOversized: number;
-  tokenUsage: { inputTokens: number; outputTokens: number };
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
 }
 
 export async function processBigFilesQueue(input: ProcessBigFilesInput): Promise<ProcessBigFilesResult> {
@@ -32,6 +33,7 @@ export async function processBigFilesQueue(input: ProcessBigFilesInput): Promise
   let skippedOversized = 0;
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+  let totalCostUsd = 0;
 
   const reporter = input.progressContext?.reporter({
     phase: "file_analysis",
@@ -83,9 +85,13 @@ export async function processBigFilesQueue(input: ProcessBigFilesInput): Promise
         if (condensed.tokenUsage) {
           totalInputTokens += condensed.tokenUsage.inputTokens;
           totalOutputTokens += condensed.tokenUsage.outputTokens;
+          totalCostUsd += condensed.tokenUsage.costUsd;
         }
       } catch (cause: unknown) {
         if (cause instanceof CancellationError) {
+          throw cause;
+        }
+        if (cause instanceof LlmConfigError || cause instanceof LlmError) {
           throw cause;
         }
         failed += 1;
@@ -101,7 +107,7 @@ export async function processBigFilesQueue(input: ProcessBigFilesInput): Promise
       cached,
       failed,
       skippedOversized,
-      tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens },
+      tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
     };
   } finally {
     reporter?.stop();

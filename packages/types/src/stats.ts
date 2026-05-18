@@ -1,27 +1,3 @@
-export interface ModelTokenUsage {
-  inputTokens: number;
-  outputTokens: number;
-}
-
-export type ModelTokenBreakdown = Record<string, ModelTokenUsage>;
-
-export interface ProcessingStatsDoc {
-  knowledgeId: string;
-  repoName: string;
-  commitHash: string;
-  modelTokens: ModelTokenBreakdown;
-  inputTokens: number;
-  outputTokens: number;
-  estimatedCost: number;
-  totalBatches: number;
-  totalFiles: number;
-  totalFolders: number;
-  filesAnalyzed: number;
-  processingTimeMs: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface StatsTotals {
   totalRepos: number;
   totalFiles: number;

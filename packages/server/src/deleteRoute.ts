@@ -40,7 +40,6 @@ export function buildDeleteRoute(): Router {
       jobsRemoved: removedJobs.removed,
       mongoDeleted: mongoResult.knowledgeDeleted,
       rawDeleted: mongoResult.rawDeleted,
-      statsDeleted: mongoResult.statsDeleted,
     });
   });
   return router;

@@ -1,5 +1,6 @@
 import { logger } from "@bb/logger";
 import type { AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import type { MetaPaths } from "#src/types/meta-paths.ts";
 import type { SourceReader } from "#src/types/pipeline.ts";
 import type { ProgressContext } from "#src/progress/types.ts";
@@ -60,6 +61,9 @@ export async function backfillBigFiles(input: BackfillBigFilesInput): Promise<Ba
         });
         reCondensed += 1;
       } catch (cause: unknown) {
+        if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+          throw cause;
+        }
         failed += 1;
         const msg = cause instanceof Error ? cause.message : String(cause);
         logger.warn(`phase4: re-condense failed for ${entry.relativePath}: ${msg}`);

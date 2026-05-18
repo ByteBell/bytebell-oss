@@ -49,14 +49,27 @@ function buildRunner(
 export function registerGithubWorkers(deps: RegisterGithubWorkersDeps = {}): void {
   const progressContextFactory = deps.progressContextFactory ?? nullProgressContextFactory;
   const runner = buildRunner(deps.sourceFactory, progressContextFactory);
-  registerWorker(JobType.GithubIndex, createGithubIngestHandler({ runner }));
+  // `registerWorker` expects `Promise<void>`; the handler now returns
+  // `Promise<PipelineSummary>` so the enterprise queue bridge can mirror
+  // per-commit tokens + cost into the knowledge record. The OSS in-process
+  // worker discards the summary — local stats are read off
+  // `source.commitHashes[]` via `bytebell stats` instead.
+  const indexHandler = createGithubIngestHandler({ runner });
+  registerWorker(JobType.GithubIndex, async (msg) => {
+    await indexHandler(msg);
+  });
   const pullFactory = deps.pullFactory;
-  registerWorker(JobType.GithubPull, (msg) => runPull(msg, pullFactory, progressContextFactory));
+  registerWorker(JobType.GithubPull, async (msg) => {
+    await runPull(msg, pullFactory, progressContextFactory);
+  });
 }
 
 export function registerLocalIngestWorker(): void {
   const runner = buildRunner(undefined, nullProgressContextFactory);
-  registerWorker(JobType.LocalIngest, createLocalIngestHandler({ runner }));
+  const localHandler = createLocalIngestHandler({ runner });
+  registerWorker(JobType.LocalIngest, async (msg) => {
+    await localHandler(msg);
+  });
 }
 
 export { createFlatFolderStrategy } from "./strategies/flat-folder/index.ts";

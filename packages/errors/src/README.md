@@ -36,7 +36,13 @@ package-level contract; this file documents how the source tree is split.
 - **[llm-errors.ts](llm-errors.ts)** — errors thrown by `@bb/llm`.
   Today: `LlmConfigError` (missing OpenRouter API key; carries the
   `bytebell keys set` hint), `LlmError` (HTTP non-2xx, timeout, empty
-  completion; accepts an optional `cause`).
+  completion; accepts an optional `cause` plus an optional
+  `{ status?: number; detail?: string }` options bag — `status` is the
+  provider HTTP status when the failure originated from a non-OK response,
+  `detail` is the raw response body capped to 4000 chars. Downstream
+  classifiers like `@bb/ingest-github/src/pipeline/failure-classifier.ts`
+  map `status` → `KnowledgeFailureCategory` so operators see the right
+  remediation hint).
 - **[ingest-errors.ts](ingest-errors.ts)** — errors thrown by
   `@bb/ingest-*` workers and `@bb/cli`'s ingest command. Today:
   `GitCloneError` (git binary failed; redacts userinfo in the repo URL

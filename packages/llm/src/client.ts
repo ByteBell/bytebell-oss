@@ -33,6 +33,12 @@ export interface AskLlmUsage {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /**
+   * Provider-reported cost in USD for this single call. Taken directly from
+   * the provider's response — `usage.cost` on OpenRouter, `0` for Ollama,
+   * `0` when the provider omits the field. Never computed client-side.
+   */
+  costUsd: number;
 }
 
 export interface AskLlmResult {

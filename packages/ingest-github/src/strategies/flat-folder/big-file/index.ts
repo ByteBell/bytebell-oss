@@ -81,8 +81,10 @@ export async function processBigFile(input: ProcessBigFileInput): Promise<Conden
 
   const chunkInputTokens = results.reduce((acc, r) => acc + (r.tokenUsage?.inputTokens ?? 0), 0);
   const chunkOutputTokens = results.reduce((acc, r) => acc + (r.tokenUsage?.outputTokens ?? 0), 0);
+  const chunkCostUsd = results.reduce((acc, r) => acc + (r.tokenUsage?.costUsd ?? 0), 0);
   const totalInputTokens = chunkInputTokens + (merged.tokenUsage?.inputTokens ?? 0);
   const totalOutputTokens = chunkOutputTokens + (merged.tokenUsage?.outputTokens ?? 0);
+  const totalCostUsd = chunkCostUsd + (merged.tokenUsage?.costUsd ?? 0);
 
   const manifest: HugeFileManifest = {
     relativePath: input.relativePath,
@@ -104,7 +106,7 @@ export async function processBigFile(input: ProcessBigFileInput): Promise<Conden
     totalTokenCount,
     analysedAt: new Date().toISOString(),
     analysis: merged.analysis,
-    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens },
+    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
   };
   await saveCondensed(input.metaPaths, condensed);
   return condensed;

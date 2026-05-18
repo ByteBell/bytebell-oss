@@ -1,6 +1,7 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { askJsonLLM, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
@@ -41,7 +42,10 @@ export async function summariseFolder(
   folderPath: string,
   files: CondensedFileAnalysis[],
   llmCallContext?: AskLlmOptions,
-): Promise<{ summary: FolderSummary | null; tokenUsage: { inputTokens: number; outputTokens: number } }> {
+): Promise<{
+  summary: FolderSummary | null;
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
+}> {
   const userPrompt = folderAnalysisUserPrompt(folderPath, files);
   try {
     const response = await askJsonLLM<FolderSummaryJson>(
@@ -53,17 +57,28 @@ export async function summariseFolder(
       logger.warn(`summariseFolder: ${folderPath || "<root>"} returned unparseable JSON`);
       return {
         summary: null,
-        tokenUsage: { inputTokens: response.usage.inputTokens, outputTokens: response.usage.outputTokens },
+        tokenUsage: {
+          inputTokens: response.usage.inputTokens,
+          outputTokens: response.usage.outputTokens,
+          costUsd: response.usage.costUsd,
+        },
       };
     }
     return {
       summary: shapeFolderSummary(folderPath, response.result),
-      tokenUsage: { inputTokens: response.usage.inputTokens, outputTokens: response.usage.outputTokens },
+      tokenUsage: {
+        inputTokens: response.usage.inputTokens,
+        outputTokens: response.usage.outputTokens,
+        costUsd: response.usage.costUsd,
+      },
     };
   } catch (cause: unknown) {
+    if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+      throw cause;
+    }
     const msg = cause instanceof Error ? cause.message : String(cause);
     logger.warn(`summariseFolder: ${folderPath || "<root>"} askJsonLLM failed: ${msg}`);
-    return { summary: null, tokenUsage: { inputTokens: 0, outputTokens: 0 } };
+    return { summary: null, tokenUsage: { inputTokens: 0, outputTokens: 0, costUsd: 0 } };
   }
 }
 
@@ -100,7 +115,11 @@ export async function runFolderSummaryPhase(
   metaPaths: MetaPaths,
   llmCallContext?: AskLlmOptions,
   progressContext?: ProgressContext,
-): Promise<{ succeeded: number; failed: number; tokenUsage: { inputTokens: number; outputTokens: number } }> {
+): Promise<{
+  succeeded: number;
+  failed: number;
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
+}> {
   const concurrentWorkers = getConfigValue(Config.ConcurrentWorkers);
   const limit = withConcurrency(concurrentWorkers);
   const groups = await groupByDirectFolder(metaPaths);
@@ -108,6 +127,7 @@ export async function runFolderSummaryPhase(
   let failed = 0;
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+  let totalCostUsd = 0;
   const reporter = progressContext?.reporter({
     phase: "folder_analysis",
     total: { kind: "fixed", total: groups.size },
@@ -123,6 +143,7 @@ export async function runFolderSummaryPhase(
             const { summary, tokenUsage } = await summariseFolder(folderPath, files, llmCallContext);
             totalInputTokens += tokenUsage.inputTokens;
             totalOutputTokens += tokenUsage.outputTokens;
+            totalCostUsd += tokenUsage.costUsd;
             if (summary !== null) {
               await persistFolderSummary(metaPaths, summary);
               succeeded += 1;
@@ -146,7 +167,11 @@ export async function runFolderSummaryPhase(
     reporter?.stop();
   }
   logger.info(`phase5 done: foldersSummarised=${succeeded} failed=${failed}`);
-  return { succeeded, failed, tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens } };
+  return {
+    succeeded,
+    failed,
+    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
+  };
 }
 
 function shapeFolderSummary(folderPath: string, raw: FolderSummaryJson): FolderSummary {

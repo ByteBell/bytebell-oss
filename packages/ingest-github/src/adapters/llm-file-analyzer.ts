@@ -1,4 +1,5 @@
 import { askJsonLLM, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import type { FileAnalysis, FileAnalysisSection } from "@bb/mongo";
 import { FALLBACK_LANGUAGE, emptyFileAnalysis } from "#src/types/file-analysis.ts";
@@ -42,15 +43,24 @@ export function createLlmFileAnalyzer(deps: LlmFileAnalyzerDeps): FileAnalyzer {
       const userPrompt = deps.buildUserPrompt(input);
       const t0 = performance.now();
       let raw: RawAnalysisJson | null = null;
-      let usage: { inputTokens: number; outputTokens: number } | undefined;
+      let usage: { inputTokens: number; outputTokens: number; costUsd: number } | undefined;
       try {
         const response = await askJsonLLM<RawAnalysisJson>(systemPrompt, userPrompt, input.llmCallContext ?? {});
         raw = response.result;
-        usage = { inputTokens: response.usage.inputTokens, outputTokens: response.usage.outputTokens };
+        usage = {
+          inputTokens: response.usage.inputTokens,
+          outputTokens: response.usage.outputTokens,
+          costUsd: response.usage.costUsd,
+        };
         if (raw === null) {
           logger.warn(`llm-file-analyzer: ${input.relativePath} returned unparseable JSON`);
         }
       } catch (cause: unknown) {
+        if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+          // LLM is unreachable / misconfigured — bubble up so the runner can
+          // mark the knowledge FAILED with a structured reason.
+          throw cause;
+        }
         const msg = cause instanceof Error ? cause.message : String(cause);
         logger.warn(`llm-file-analyzer: ${input.relativePath} askJsonLLM failed: ${msg}`);
       }

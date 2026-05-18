@@ -90,6 +90,7 @@ export async function callOllama(prompt: string, opts: AskLlmOptions, timeoutMs:
           ? json.prompt_eval_count
           : tokenLen((opts.systemPrompt ?? "") + prompt),
       outputTokens: typeof json.eval_count === "number" ? json.eval_count : tokenLen(content),
+      costUsd: 0,
     },
   };
 }

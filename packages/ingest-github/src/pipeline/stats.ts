@@ -1,37 +1,3 @@
-import { recordProcessingStats } from "@bb/mongo";
-import { estimateCostFromBreakdown } from "@bb/llm";
-
-export interface PersistStatsInput {
-  knowledgeId: string;
-  repoName: string;
-  commitHash: string;
-  filesAnalyzed: number;
-  foldersSummarised: number;
-  processingTimeMs: number;
-  tokenUsage: { inputTokens: number; outputTokens: number };
-}
-
-export async function persistStats(input: PersistStatsInput): Promise<{ inputTokens: number; outputTokens: number }> {
-  const estimatedCost = await estimateCostFromBreakdown({});
-  return await recordProcessingStats({
-    knowledgeId: input.knowledgeId,
-    repoName: input.repoName,
-    commitHash: input.commitHash,
-    modelTokens: {
-      total: {
-        inputTokens: input.tokenUsage.inputTokens,
-        outputTokens: input.tokenUsage.outputTokens,
-      },
-    },
-    estimatedCost,
-    totalBatches: 1,
-    totalFiles: input.filesAnalyzed,
-    totalFolders: input.foldersSummarised,
-    filesAnalyzed: input.filesAnalyzed,
-    processingTimeMs: input.processingTimeMs,
-  });
-}
-
 export function repoNameFromUrl(repoUrl: string): string {
   try {
     const segments = new URL(repoUrl).pathname

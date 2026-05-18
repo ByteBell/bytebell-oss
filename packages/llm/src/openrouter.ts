@@ -11,10 +11,20 @@ interface OpenRouterMessage {
   content: string;
 }
 
+interface OpenRouterUsageAccounting {
+  /**
+   * Opt-in flag that asks OpenRouter to populate `usage.cost` in the
+   * response with the authoritative billed cost (in USD credits). Without
+   * this, OpenRouter omits the cost field.
+   */
+  include: true;
+}
+
 interface OpenRouterRequest {
   model: string;
   models?: string[];
   messages: OpenRouterMessage[];
+  usage: OpenRouterUsageAccounting;
 }
 
 interface OpenRouterResponse {
@@ -23,6 +33,7 @@ interface OpenRouterResponse {
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
+    cost?: number;
   };
 }
 
@@ -55,8 +66,11 @@ export async function callOpenRouter(prompt: string, opts: AskLlmOptions, timeou
   }
   messages.push({ role: "user", content: prompt });
 
+  const usageAccounting: OpenRouterUsageAccounting = { include: true };
   const body: OpenRouterRequest =
-    cappedChain.length > 1 ? { model, models: cappedChain, messages } : { model, messages };
+    cappedChain.length > 1
+      ? { model, models: cappedChain, messages, usage: usageAccounting }
+      : { model, messages, usage: usageAccounting };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -82,7 +96,10 @@ export async function callOpenRouter(prompt: string, opts: AskLlmOptions, timeou
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new LlmError(`OpenRouter HTTP ${response.status}: ${text.slice(0, 500)}`);
+    throw new LlmError(`OpenRouter HTTP ${response.status}`, undefined, {
+      status: response.status,
+      detail: text.slice(0, 4000),
+    });
   }
 
   const json = (await response.json()) as OpenRouterResponse;
@@ -100,6 +117,7 @@ export async function callOpenRouter(prompt: string, opts: AskLlmOptions, timeou
           : tokenLen((opts.systemPrompt ?? "") + prompt),
       outputTokens:
         typeof json.usage?.completion_tokens === "number" ? json.usage.completion_tokens : tokenLen(content),
+      costUsd: typeof json.usage?.cost === "number" ? json.usage.cost : 0,
     },
   };
 }

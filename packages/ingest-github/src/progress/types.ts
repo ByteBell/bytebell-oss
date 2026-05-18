@@ -40,7 +40,15 @@ export interface ProgressContext {
   reporter(input: ProgressReporterInput): ProgressReporter;
   phaseChanged(phase: ProgressPhase): void;
   completed(message?: string): void;
-  failed(error: string, phase?: ProgressPhase): void;
+  /**
+   * Emit a terminal FAILED event. `error` is a short operator-readable
+   * sentence (e.g. "OpenRouter is out of credits"). `category` is the
+   * classification taxonomy (`"llm_config" | "llm_auth" | "llm_quota" |
+   * "llm_rate_limit" | "llm_unreachable" | "cancelled" | "internal"`).
+   * `detail` is the optional raw provider response or structured debug
+   * payload — UIs typically hide it behind a disclosure.
+   */
+  failed(error: string, phase?: ProgressPhase, category?: string, detail?: string): void;
 }
 
 export type ProgressContextFactory = (knowledgeId: string) => ProgressContext;

@@ -57,6 +57,10 @@ export async function getCachedDecision(key: string): Promise<CachedDecision | n
     if (typeof parsed.content !== "string" || parsed.usage === undefined) {
       return null;
     }
+    // Tolerate older cache entries written before AskLlmUsage gained costUsd.
+    if (typeof parsed.usage.costUsd !== "number") {
+      parsed.usage.costUsd = 0;
+    }
     return parsed;
   } catch {
     return null;

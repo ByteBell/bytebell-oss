@@ -1,9 +1,10 @@
 import { KnowledgeState, type GithubPullPayload, type JobMessage } from "@bb/types";
-import { getKnowledge, setKnowledgeCommit, setKnowledgeState } from "@bb/mongo";
+import { getKnowledge, markKnowledgeFailed, setKnowledgeCommit, setKnowledgeState } from "@bb/mongo";
 import { setKnowledgeStateInGraph, snapshotFilesToVersion, type NodeScope } from "@bb/neo4j";
-import { describe, persistStats, repoNameFromUrl } from "./stats.ts";
+import type { PipelineSummary } from "#src/types/pipeline.ts";
 import { resolveOrgId, llmCallContextFromPayload } from "./context.ts";
 import { IngestError, KnowledgeNotFoundError } from "@bb/errors";
+import { classifyFailure } from "./failure-classifier.ts";
 import { logger } from "@bb/logger";
 import { ensureMetaDirs, metaPathsFor, repoCloneDir, ensureReposRoot } from "./paths.ts";
 import { readHeadCommitHash, syncRepository } from "./source.ts";
@@ -38,7 +39,7 @@ export async function runPull(
   msg: JobMessage<GithubPullPayload>,
   pullFactory?: PullFactory,
   progressContextFactory: ProgressContextFactory = nullProgressContextFactory,
-): Promise<void> {
+): Promise<PipelineSummary> {
   const { knowledgeId } = msg.payload;
   if (msg.payload.targetCommitHash !== undefined && !COMMIT_HASH_RE.test(msg.payload.targetCommitHash)) {
     throw new IngestError(
@@ -70,7 +71,6 @@ export async function runPull(
   const gitToken = msg.payload.gitToken;
 
   clearCancellation(knowledgeId);
-  const startedAt = Date.now();
   await transitionState(knowledgeId, KnowledgeState.Processing);
   const progressContext = progressContextFactory(knowledgeId);
 
@@ -92,7 +92,7 @@ export async function runPull(
       if (targetCommit === currentCommit) {
         logger.info(`pull: ${knowledgeId} already at ${targetCommit.slice(0, 12)}; no-op`);
         await transitionState(knowledgeId, KnowledgeState.Processed);
-        return;
+        return emptyPullSummary(targetCommit);
       }
     } else {
       await ensureReposRoot();
@@ -116,7 +116,7 @@ export async function runPull(
       if (targetCommit === currentCommit) {
         logger.info(`pull: ${knowledgeId} already at ${targetCommit.slice(0, 12)}; no-op`);
         await transitionState(knowledgeId, KnowledgeState.Processed);
-        return;
+        return emptyPullSummary(targetCommit);
       }
 
       // Deepen the shallow clone first so historical commits selected via the
@@ -174,6 +174,7 @@ export async function runPull(
     const phase1 = await analyseChangedFiles(analyseChangedInput);
     let totalInputTokens = phase1.tokenUsage.inputTokens;
     let totalOutputTokens = phase1.tokenUsage.outputTokens;
+    let totalCostUsd = phase1.tokenUsage.costUsd;
 
     logger.info(`pull: phase process big files starting`);
     throwIfCancelled(knowledgeId);
@@ -189,6 +190,7 @@ export async function runPull(
     const phase2 = await processBigFilesQueue(processBigFilesInput);
     totalInputTokens += phase2.tokenUsage.inputTokens;
     totalOutputTokens += phase2.tokenUsage.outputTokens;
+    totalCostUsd += phase2.tokenUsage.costUsd;
 
     logger.info(`pull: phase backfill fields starting`);
     throwIfCancelled(knowledgeId);
@@ -221,6 +223,7 @@ export async function runPull(
     const phase5 = await runSelectiveFolderSummary(selectiveInput);
     totalInputTokens += phase5.tokenUsage.inputTokens;
     totalOutputTokens += phase5.tokenUsage.outputTokens;
+    totalCostUsd += phase5.tokenUsage.costUsd;
 
     progressContext.phaseChanged("indexing");
     logger.info(`pull: phase repo summary starting`);
@@ -230,6 +233,7 @@ export async function runPull(
     const { summary: repoSummary, tokenUsage: repoUsage } = await summariseRepo(knowledgeId, metaPaths, llmCallContext);
     totalInputTokens += repoUsage.inputTokens;
     totalOutputTokens += repoUsage.outputTokens;
+    totalCostUsd += repoUsage.costUsd;
     if (repoSummary !== null) {
       await persistRepoSummary(metaPaths, makeRepoSummaryEnvelope(knowledgeId, orgId, repoSummary));
     }
@@ -245,34 +249,52 @@ export async function runPull(
       affectedFolders,
     });
 
-    const stats = await persistStats({
+    await setKnowledgeCommit(
       knowledgeId,
-      repoName: repoNameFromUrl(repoUrl),
-      commitHash: targetCommit,
-      filesAnalyzed: stored.filesUpserted,
-      foldersSummarised: stored.foldersUpserted,
-      processingTimeMs: Date.now() - startedAt,
-      tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens },
-    });
-    await setKnowledgeCommit(knowledgeId, targetCommit, String(stats.inputTokens), String(stats.outputTokens));
+      targetCommit,
+      String(totalInputTokens),
+      String(totalOutputTokens),
+      String(totalCostUsd),
+    );
     await transitionState(knowledgeId, KnowledgeState.Processed);
     progressContext.completed("github_pull complete");
     logger.info(
       `pull: ${knowledgeId} ${currentCommit.slice(0, 12)} -> ${targetCommit.slice(0, 12)} done (filesUpserted=${stored.filesUpserted} filesDeleted=${stored.filesDeleted} foldersUpserted=${stored.foldersUpserted})`,
     );
+    return {
+      filesAnalyzed: stored.filesUpserted,
+      foldersSummarised: stored.foldersUpserted,
+      repoSummarised: repoSummary !== null,
+      graphNodesWritten: stored.filesUpserted + stored.foldersUpserted,
+      commitHash: targetCommit,
+      tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
+    };
   } catch (cause: unknown) {
     if (cause instanceof CancellationError) {
       clearCancellation(knowledgeId);
       logger.info(`pull: cancelled for ${knowledgeId}`);
       throw cause;
     }
-    await transitionState(knowledgeId, KnowledgeState.Failed).catch(() => undefined);
-    progressContext.failed(describe(cause));
-    throw new IngestError(knowledgeId, `github_pull failed: ${describe(cause)}`, cause);
+    const { category, reason, detail } = classifyFailure(cause);
+    await markKnowledgeFailed(knowledgeId, reason, category, detail).catch(() => undefined);
+    await setKnowledgeStateInGraph(knowledgeId, KnowledgeState.Failed).catch(() => undefined);
+    progressContext.failed(reason, undefined, category, detail);
+    throw new IngestError(knowledgeId, `github_pull failed: ${reason}`, cause);
   }
 }
 
 async function transitionState(knowledgeId: string, state: KnowledgeState): Promise<void> {
   await setKnowledgeState(knowledgeId, state);
   await setKnowledgeStateInGraph(knowledgeId, state).catch(() => undefined);
+}
+
+function emptyPullSummary(commitHash: string): PipelineSummary {
+  return {
+    filesAnalyzed: 0,
+    foldersSummarised: 0,
+    repoSummarised: false,
+    graphNodesWritten: 0,
+    commitHash,
+    tokenUsage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+  };
 }

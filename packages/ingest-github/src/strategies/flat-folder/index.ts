@@ -2,6 +2,7 @@ import { logger } from "@bb/logger";
 import type { FileAnalyzer } from "#src/types/pipeline.ts";
 import type { IngestStrategy, StrategyInput, StrategyResult } from "#src/types/strategy.ts";
 import { throwIfCancelled } from "#src/pipeline/cancellation.ts";
+import { classifyFailure } from "#src/pipeline/failure-classifier.ts";
 import { classifyAndAnalyseSmall } from "./phases/classify-and-analyse-small.ts";
 import { processBigFilesQueue } from "./phases/process-big-files.ts";
 import { backfillMissingFields } from "./backfill/fields.ts";
@@ -47,6 +48,7 @@ export function createFlatFolderStrategy(deps: FlatFolderStrategyDeps): IngestSt
         const phase1 = await classifyAndAnalyseSmall(phase1Input);
         let totalInputTokens = phase1.tokenUsage.inputTokens;
         let totalOutputTokens = phase1.tokenUsage.outputTokens;
+        let totalCostUsd = phase1.tokenUsage.costUsd;
 
         logger.info(`flat-folder: phase2 (process big files) starting`);
         throwIfCancelled(knowledgeId);
@@ -62,6 +64,7 @@ export function createFlatFolderStrategy(deps: FlatFolderStrategyDeps): IngestSt
         const phase2 = await processBigFilesQueue(phase2Input);
         totalInputTokens += phase2.tokenUsage.inputTokens;
         totalOutputTokens += phase2.tokenUsage.outputTokens;
+        totalCostUsd += phase2.tokenUsage.costUsd;
 
         logger.info(`flat-folder: phase3 (backfill missing fields) starting`);
         throwIfCancelled(knowledgeId);
@@ -86,6 +89,7 @@ export function createFlatFolderStrategy(deps: FlatFolderStrategyDeps): IngestSt
         const phase5 = await runFolderSummaryPhase(knowledgeId, metaPaths, llmCallContext, progressContext);
         totalInputTokens += phase5.tokenUsage.inputTokens;
         totalOutputTokens += phase5.tokenUsage.outputTokens;
+        totalCostUsd += phase5.tokenUsage.costUsd;
 
         progressContext.phaseChanged("indexing");
         logger.info(`flat-folder: phase6 (repo summary) starting`);
@@ -97,6 +101,7 @@ export function createFlatFolderStrategy(deps: FlatFolderStrategyDeps): IngestSt
         );
         totalInputTokens += repoUsage.inputTokens;
         totalOutputTokens += repoUsage.outputTokens;
+        totalCostUsd += repoUsage.costUsd;
         let repoSummarised = false;
         if (repoSummary !== null) {
           await persistRepoSummary(metaPaths, makeRepoSummaryEnvelope(knowledgeId, orgId, repoSummary));
@@ -120,11 +125,11 @@ export function createFlatFolderStrategy(deps: FlatFolderStrategyDeps): IngestSt
           foldersSummarised: phase5.succeeded,
           repoSummarised,
           graphNodesWritten: phase7.nodesWritten,
-          tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens },
+          tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
         };
       } catch (cause: unknown) {
-        const message = cause instanceof Error ? cause.message : String(cause);
-        progressContext.failed(message);
+        const { category, reason, detail } = classifyFailure(cause);
+        progressContext.failed(reason, undefined, category, detail);
         throw cause;
       }
     },

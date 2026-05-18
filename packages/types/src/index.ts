@@ -13,17 +13,11 @@ export { KnowledgeState } from "./knowledge.ts";
 export type {
   GithubKnowledgeSource,
   KnowledgeDoc,
+  KnowledgeFailure,
+  KnowledgeFailureCategory,
   KnowledgeInfo,
   KnowledgeSource,
   LocalKnowledgeSource,
 } from "./knowledge.ts";
-export type {
-  ModelTokenBreakdown,
-  ModelTokenUsage,
-  ProcessingStatsDoc,
-  StatsCommitEntry,
-  StatsRepoEntry,
-  StatsResponse,
-  StatsTotals,
-} from "./stats.ts";
+export type { StatsCommitEntry, StatsRepoEntry, StatsResponse, StatsTotals } from "./stats.ts";
 export type { UsageDoc, ActivityDoc, UsageIncrement, ActivityInput } from "./usage.ts";

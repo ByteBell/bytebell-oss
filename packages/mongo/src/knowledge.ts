@@ -1,4 +1,4 @@
-import type { KnowledgeDoc, KnowledgeState } from "@bb/types";
+import type { KnowledgeDoc, KnowledgeFailureCategory, KnowledgeState } from "@bb/types";
 import { KnowledgeNotFoundError } from "@bb/errors";
 import { _getDb } from "./client.ts";
 import { Collections } from "./collections.ts";
@@ -10,9 +10,51 @@ export interface KnowledgeListEntry extends KnowledgeDoc {
 }
 
 export async function setKnowledgeState(knowledgeId: string, state: KnowledgeState): Promise<void> {
+  const update: Record<string, unknown> = { "status.state": state, updatedAt: new Date() };
   const result = await _getDb()
     .collection(Collections.Knowledge)
-    .updateOne({ knowledgeId }, { $set: { "status.state": state, updatedAt: new Date() } });
+    .updateOne({ knowledgeId }, { $set: update, $unset: { failure: "" } });
+  if (result.matchedCount === 0) {
+    throw new KnowledgeNotFoundError(knowledgeId);
+  }
+}
+
+/**
+ * Marks a knowledge as FAILED and records the structured failure reason on
+ * the top-level `failure` subdoc. The next successful transition out of
+ * FAILED automatically clears it (see `setKnowledgeState`'s `$unset`).
+ *
+ * `reason` is a short operator-readable sentence (UI surfaces it directly).
+ * `detail` is the raw provider response or structured debug payload (UI may
+ * hide behind a disclosure).
+ */
+export async function markKnowledgeFailed(
+  knowledgeId: string,
+  reason: string,
+  category: KnowledgeFailureCategory,
+  detail?: string,
+): Promise<void> {
+  const now = new Date();
+  const failure: { reason: string; category: KnowledgeFailureCategory; at: Date; detail?: string } = {
+    reason,
+    category,
+    at: now,
+  };
+  if (detail !== undefined && detail.length > 0) {
+    failure.detail = detail;
+  }
+  const result = await _getDb()
+    .collection(Collections.Knowledge)
+    .updateOne(
+      { knowledgeId },
+      {
+        $set: {
+          "status.state": "FAILED",
+          failure,
+          updatedAt: now,
+        },
+      },
+    );
   if (result.matchedCount === 0) {
     throw new KnowledgeNotFoundError(knowledgeId);
   }
@@ -31,6 +73,7 @@ export async function setKnowledgeCommit(
   commitHash: string,
   inputTokens: string = "",
   outputTokens: string = "",
+  costUsd: string = "0",
 ): Promise<void> {
   const result = await _getDb()
     .collection(Collections.Knowledge)
@@ -39,7 +82,7 @@ export async function setKnowledgeCommit(
       {
         $set: { "source.commitId": commitHash, updatedAt: new Date() },
         $addToSet: {
-          "source.commitHashes": { hash: commitHash, inputTokens, outputTokens },
+          "source.commitHashes": { hash: commitHash, inputTokens, outputTokens, costUsd },
         },
       },
     );
@@ -102,7 +145,6 @@ export async function upsertKnowledge(doc: Omit<KnowledgeDoc, "updatedAt"> & { u
 export interface DeleteKnowledgeResult {
   knowledgeDeleted: number;
   rawDeleted: number;
-  statsDeleted: number;
 }
 
 export async function deleteKnowledge(knowledgeId: string): Promise<DeleteKnowledgeResult> {
@@ -112,11 +154,9 @@ export async function deleteKnowledge(knowledgeId: string): Promise<DeleteKnowle
     throw new KnowledgeNotFoundError(knowledgeId);
   }
   const rawRes = await db.collection(Collections.Raw).deleteMany({ knowledgeId });
-  const statsRes = await db.collection(Collections.ProcessingStats).deleteMany({ knowledgeId });
   return {
     knowledgeDeleted: knowledgeRes.deletedCount ?? 0,
     rawDeleted: rawRes.deletedCount ?? 0,
-    statsDeleted: statsRes.deletedCount ?? 0,
   };
 }
 

@@ -18,30 +18,29 @@ selected by `Config.LlmProvider` (`"openrouter"` default, or
 - `askLLM(prompt, opts?)` — dispatches to either
   `src/openrouter.ts` or `src/ollama.ts` depending on
   `Config.LlmProvider`. Returns
-  `{ content, usage: { model, inputTokens, outputTokens } }`. Caller
-  never sees the provider; the result shape is identical across
-  backends.
+  `{ content, usage: { model, inputTokens, outputTokens, costUsd } }`.
+  Caller never sees the provider; the result shape is identical across
+  backends. `costUsd` is the provider-reported USD cost for that single
+  call — taken straight from the provider's response, never computed
+  client-side.
 - **OpenRouter mode** — POST to OpenRouter's chat-completions endpoint
   using `Config.OpenrouterApiKey` + `Config.OpenrouterModel` as the
   primary model, plus `Config.OpenrouterFallbackModel1..4` as the
   fallback chain. The request body includes a `models: [...]` array
-  when the deduplicated chain has ≥2 non-empty entries; OpenRouter
-  routes among them and bills only the responder. `usage.model` is the
-  actual model the gateway picked. Tokens come straight from
-  OpenRouter's `usage.prompt_tokens` / `usage.completion_tokens`.
+  when the deduplicated chain has ≥2 non-empty entries and always sends
+  `usage: { include: true }` so OpenRouter populates `usage.cost` in
+  the response. `usage.model` is the actual model the gateway picked.
+  Tokens come straight from OpenRouter's `usage.prompt_tokens` /
+  `usage.completion_tokens`; `costUsd` from `usage.cost` (defaults to
+  `0` when the provider omits it — common for `:free` models).
 - **Ollama mode** — POST to `${Config.OllamaUrl}/api/chat` with
   `{ model: Config.OllamaModel, messages, stream: false }`. Single
   model per request — no fallback chain (Ollama does not have a
   multi-model fan-out). The model string is free-form: any model the
   user has pulled into their Ollama daemon works (`llama3.1`,
   `qwen2.5-coder:7b`, custom Modelfile names — we do not validate).
-  `inputTokens` ← `prompt_eval_count`, `outputTokens` ← `eval_count`.
-  Cost is reported as `$0` (see `estimateCostUsd` short-circuit).
-- `estimateCostUsd(model, inputTokens, outputTokens)` and
-  `estimateCostFromBreakdown(modelTokens)` — async cost helpers backed
-  by a one-shot fetch of OpenRouter's `/api/v1/models` (cached in module
-  scope for the process lifetime). Returns `-1` when the model has no
-  published pricing.
+  `inputTokens` ← `prompt_eval_count`, `outputTokens` ← `eval_count`,
+  `costUsd` ← `0` (Ollama is keyless / local).
 - AbortController-based timeout (default 90s, matches the kube-package
   reference `askLLM` shape)
 - Typed errors via `@bb/errors`: `LlmConfigError` (missing key) and
@@ -56,8 +55,6 @@ selected by `Config.LlmProvider` (`"openrouter"` default, or
 
 ```ts
 function askLLM(prompt: string, opts?: AskLlmOptions): Promise<AskLlmResult>;
-function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): Promise<number>;
-function estimateCostFromBreakdown(modelTokens: ModelTokenBreakdown): Promise<number>;
 function tokenLen(text: string): number;
 function encodeTokens(text: string): number[];
 function decodeTokens(tokens: number[]): string;
@@ -73,9 +70,13 @@ interface AskLlmOptions {
 }
 interface AskLlmResult {
   content: string;
-  usage: { model: string; inputTokens: number; outputTokens: number };
+  usage: { model: string; inputTokens: number; outputTokens: number; costUsd: number };
 }
 ```
+
+Local-pricing helpers (`estimateCostUsd`, `estimateCostFromBreakdown`)
+have been removed — cost is now sourced directly from
+`response.usage.cost` returned by OpenRouter.
 
 The package has no module-scoped HTTP client. Each `askLLM` call
 constructs its own `fetch` request.

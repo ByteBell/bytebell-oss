@@ -34,7 +34,7 @@ class NullProgressContext implements ProgressContext {
   completed(_message?: string): void {
     /* no-op */
   }
-  failed(_error: string, _phase?: ProgressPhase): void {
+  failed(_error: string, _phase?: ProgressPhase, _category?: string, _detail?: string): void {
     /* no-op */
   }
 }

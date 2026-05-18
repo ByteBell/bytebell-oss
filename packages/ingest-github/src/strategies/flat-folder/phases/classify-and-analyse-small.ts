@@ -1,5 +1,6 @@
 import path from "node:path";
 import { tokenLen, type AskLlmOptions } from "@bb/llm";
+import { LlmConfigError, LlmError } from "@bb/errors";
 import { logger } from "@bb/logger";
 import { Config } from "@bb/types";
 import { getConfigValue } from "@bb/config";
@@ -30,7 +31,7 @@ export interface ClassifyPhaseResult {
   bigFilesQueued: number;
   oversizedStubs: number;
   failed: number;
-  tokenUsage: { inputTokens: number; outputTokens: number };
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
 }
 
 export async function classifyAndAnalyseSmall(input: ClassifyPhaseInput): Promise<ClassifyPhaseResult> {
@@ -43,6 +44,7 @@ export async function classifyAndAnalyseSmall(input: ClassifyPhaseInput): Promis
   let failed = 0;
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+  let totalCostUsd = 0;
 
   const repositoryHint =
     input.source.localRepoDir.length > 0 ? path.basename(input.source.localRepoDir) : input.knowledgeId;
@@ -114,11 +116,17 @@ export async function classifyAndAnalyseSmall(input: ClassifyPhaseInput): Promis
             if (condensed.tokenUsage) {
               totalInputTokens += condensed.tokenUsage.inputTokens;
               totalOutputTokens += condensed.tokenUsage.outputTokens;
+              totalCostUsd += condensed.tokenUsage.costUsd;
             }
             smallFilesAnalysed += 1;
             reporter?.increment(1, { fileName: filePath });
           } catch (cause: unknown) {
             if (cause instanceof CancellationError) {
+              throw cause;
+            }
+            if (cause instanceof LlmConfigError || cause instanceof LlmError) {
+              // LLM unreachable — bail the whole job, don't keep iterating
+              // over the rest of the files producing the same failure.
               throw cause;
             }
             failed += 1;
@@ -144,7 +152,7 @@ export async function classifyAndAnalyseSmall(input: ClassifyPhaseInput): Promis
     bigFilesQueued: bigFileBuffer.filter((e) => e.reason === "context-window-exceeded").length,
     oversizedStubs,
     failed,
-    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens },
+    tokenUsage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens, costUsd: totalCostUsd },
   };
 }
 

@@ -48,8 +48,23 @@ package-level contract; this file documents how the source tree is split.
     downstream consumers can stash extra fields without forcing schema changes
     here. The pull pipeline reads `knowledge.info.repoUrl` / `knowledge.info.branch`
     directly — that's the single source of truth for the URL/branch, no fallback.
+  - `KnowledgeFailureCategory` is a closed union covering the operator-facing
+    failure taxonomy: `"llm_config"` (no key), `"llm_auth"` (401/403),
+    `"llm_quota"` (402), `"llm_rate_limit"` (429), `"llm_unreachable"`
+    (5xx / network / timeout), `"cancelled"`, `"internal"`. The
+    HTTP-status → category mapping lives in
+    `@bb/ingest-github/src/pipeline/failure-classifier.ts`.
+  - `KnowledgeFailure` is the structured failure record:
+    `{ reason: string; category: KnowledgeFailureCategory; at: Date; detail?: string }`.
+    `reason` is a single short operator-readable sentence (UI surfaces it
+    directly), `detail` is the raw provider response body (UI hides it
+    behind a disclosure).
   - `KnowledgeDoc` carries both: `source` for upstream-type + indexed-commit
-    state, `info` for repo coordinates. Both are required on every doc.
+    state, `info` for repo coordinates. Both are required on every doc. The
+    optional `failure?: KnowledgeFailure` field is populated when
+    `status.state === FAILED` and cleared automatically by the next
+    `setKnowledgeState` call (the function `$unset`s it on transitions out
+    of FAILED).
 
 ## Module dependency graph
 

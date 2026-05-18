@@ -64,7 +64,7 @@ true` (default). Consumed by `scan.ts` via the optional `skipDecider`
   runner emits `failed(message)` only when the strategy has not yet
   started — once `strategy.execute` is reached, the strategy owns
   terminal emission and the runner stays silent to avoid double-FAILED.
-- `pull.ts` — `runPull(msg, pullFactory?, progressContextFactory?)` orchestrates the pull job.
+- `pull.ts` — `runPull(msg, pullFactory?, progressContextFactory?)` orchestrates the pull job. Returns `Promise<PipelineSummary>` (was `Promise<void>`); the returned `tokenUsage` carries `inputTokens`, `outputTokens`, and `costUsd` summed across the pull phases for callers (e.g. the enterprise queue bridge) that need to mirror the run into a knowledge record.
   Reads `repoUrl` and `branch` directly off `knowledge.info.*` (loaded via
   `@bb/mongo.getKnowledge`). The `KnowledgeSource` discriminator (`kind`) is
   still read off `knowledge.source` along with `commitId`/`commitHashes`, but
@@ -85,12 +85,25 @@ archiveSink?}` and `runPull` skips `syncRepository` + `materialiseEndpoints`
     the context into every phase that takes a `progressContext?` field,
     and finishes with `completed()` on success or `failed(message)` on a
     non-`CancellationError` throw.
-- `stats.ts` — shared helpers for handling all ingestion processing statistics,
-  repository name resolutions, and error-string descriptions: `persistStats`
-  writes the per-commit row into `processing_stats`, `repoNameFromUrl` parses
-  an owner/repo display name out of a GitHub URL with a graceful fallback, and
-  `describe` flattens an `unknown` cause to a short string for `IngestError`
-  messages.
+- `stats.ts` — small shared helpers: `repoNameFromUrl` parses an owner/repo
+  display name out of a GitHub URL with a graceful fallback, `localRepoName`
+  derives a name from a local path, and `describe` flattens an `unknown`
+  cause to a short string for `IngestError` messages. The previous
+  `persistStats` write into the `processing_stats` collection has been
+  removed — per-commit token and cost data now lives on the knowledge
+  document's `source.commitHashes[]` (set by `setKnowledgeCommit` from
+  `@bb/mongo`), with the per-call `costUsd` sourced directly from
+  OpenRouter's `response.usage.cost`.
+- `failure-classifier.ts` — `classifyFailure(cause)` returns
+  `{ reason, category, detail? }` for any thrown ingestion error.
+  `LlmConfigError` → `llm_config`. `LlmError` is subdivided by its
+  `status` field: `401`/`403` → `llm_auth`, `402` → `llm_quota`, `429` →
+  `llm_rate_limit`, `5xx`/no-status → `llm_unreachable`. Anything else →
+  `internal`. Each category produces a single short operator-readable
+  `reason` sentence; the raw provider response body lives in `detail`.
+  Used by `run.ts`/`pull.ts` catch blocks (Mongo persistence via
+  `markKnowledgeFailed`) and `strategies/flat-folder/index.ts` (SSE event
+  via `progressContext.failed`) so both paths share one classification.
 - `context.ts` — shared helpers to resolve pipeline organization IDs and parse
   optional LLM context parameter overrides from payload messages:
   `resolveOrgId(payload)` returns `payload.orgId ?? getConfigValue(Config.OrgId)`
@@ -117,8 +130,8 @@ archiveSink?}` and `runPull` skips `syncRepository` + `materialiseEndpoints`
 - Up: `@bb/config`, `@bb/types`, `@bb/errors`, `@bb/logger`, `node:*`.
 - `run.ts` and `pull.ts` additionally import `@bb/mongo` and `@bb/neo4j`
   for state transitions and graph state writes respectively.
-- `stats.ts` imports `@bb/mongo` and `@bb/llm` for persisting stats and
-  estimating cost respectively.
+- `stats.ts` has no cross-package imports — it carries only pure helpers
+  (`repoNameFromUrl`, `localRepoName`, `describe`).
 - Forbidden: importing from `../strategies`, `../adapters`, `../handlers`.
 
 ## Invariants

@@ -23,7 +23,7 @@ export type ScanEntry = ScannedFile | OversizedFile;
 export interface AnalyzedFileResult {
   language: string;
   analysis: FileAnalysis;
-  tokenUsage?: { inputTokens: number; outputTokens: number } | undefined;
+  tokenUsage?: { inputTokens: number; outputTokens: number; costUsd: number } | undefined;
 }
 
 export interface FileAnalyzer {
@@ -45,7 +45,7 @@ export interface PipelineSummary {
   repoSummarised: boolean;
   graphNodesWritten: number;
   commitHash: string;
-  tokenUsage: { inputTokens: number; outputTokens: number };
+  tokenUsage: { inputTokens: number; outputTokens: number; costUsd: number };
 }
 
 export interface PipelineDeps {
